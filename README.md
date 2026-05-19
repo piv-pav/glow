@@ -15,18 +15,18 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 ## Installation
 
 ```bash
-go install github.com/pavelpivovarov/glow/cmd/wiki@latest
+go install github.com/CBA-General/glow/cmd/wiki@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/pavelpivovarov/glow
+git clone https://github.com/CBA-General/glow
 cd glow
-just install
+just install  # Runs tests then installs
 
 # Or build locally
-just build
+just build    # Runs tests then builds
 ./wiki --version
 ```
 
@@ -278,16 +278,28 @@ glow/
 
 ### Building
 
+**Tests run automatically** before build/install:
+
 ```bash
-# Build
+# Build (runs tests first)
 just build
 
-# Run tests
+# Install (runs tests first)
+just install
+
+# Run tests only
 just test
 
-# Install locally
-just install
+# Format code
+just fmt
 ```
+
+Tests use isolated environment (`WIKI_DATA=/tmp/glow-test-wiki`) and cover:
+- Create/append/update/delete operations
+- Section-targeted edits
+- Search with filters
+- Metadata operations
+- Move/rename articles
 
 ## Contributing
 

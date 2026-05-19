@@ -4,11 +4,11 @@ default:
     @just --list
 
 # Build wiki binary locally
-build:
+build: test
     go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o wiki ./cmd/wiki
 
 # Install wiki to GOPATH/bin
-install:
+install: test
     go install -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" ./cmd/wiki
 
 # Clean built binaries
