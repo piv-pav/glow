@@ -15,6 +15,7 @@ var (
 	createMeta    []string
 	createContent string
 	createStdin   bool
+	createEditor  bool
 )
 
 var createCmd = &cobra.Command{
@@ -23,13 +24,20 @@ var createCmd = &cobra.Command{
 	Long:  `Create a new article with optional metadata. Article name can include folders (e.g., folder/article).`,
 	Args:  cobra.ExactArgs(1),
 	RunE:  runCreate,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if !createStdin && createContent == "" && !createEditor {
+			return fmt.Errorf("must specify one of: --content, --stdin, or --editor")
+		}
+		return nil
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(createCmd)
 	createCmd.Flags().StringSliceVar(&createMeta, "meta", []string{}, "Metadata in key:value format (can be repeated)")
-	createCmd.Flags().StringVar(&createContent, "content", "", "Article content (skips editor)")
-	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin (skips editor)")
+	createCmd.Flags().StringVar(&createContent, "content", "", "Article content")
+	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin")
+	createCmd.Flags().BoolVar(&createEditor, "editor", false, "Open editor for content")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -82,7 +90,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	} else if createContent != "" {
 		// Use content from flag
 		content = createContent
-	} else {
+	} else if createEditor {
 		// Open editor
 		var err error
 		content, err = openEditor("")
