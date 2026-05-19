@@ -105,12 +105,13 @@ func TestWikiCreate(t *testing.T) {
 		},
 	}
 	
-	for _, tt := range tests {
+		for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create article via echo since editor blocks
+			// Create article using --stdin flag
 			input := "# Test Content\n\nThis is test content."
-			cmd := exec.Command("sh", "-c", "echo '"+input+"' | wiki "+strings.Join(tt.args, " "))
-			cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData, "EDITOR=cat")
+			args := append(tt.args, "--stdin")
+			cmd := exec.Command("sh", "-c", "echo '"+input+"' | wiki "+strings.Join(args, " "))
+			cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 			
 			output, err := cmd.CombinedOutput()
 			
@@ -257,36 +258,38 @@ func TestWikiUpdate(t *testing.T) {
 	
 	// Setup: create initial article
 	articleName := "update-test"
-	initialContent := "---\ntags: [test]\ncreated: 2026-01-01T00:00:00Z\n---\n\n# Initial\n\nInitial content.\n"
+	initialContent := "# Initial\n\nInitial content."
 	
-	os.MkdirAll(filepath.Join(testWikiData, "default", "articles"), 0755)
-	err := os.WriteFile(getArticlePath(articleName), []byte(initialContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to setup test article: %v", err)
+	cmd := exec.Command("sh", "-c", "echo '"+initialContent+"' | wiki create "+articleName+" --stdin --meta tags:test")
+	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to setup test article: %v\nOutput: %s", err, string(output))
 	}
 	
-	runWiki("wiki-rebuild")
-	
-	// Note: Update command requires editor interaction, so we test via direct file manipulation
-	// and verify that created timestamp is preserved
-	
-	// Read original
+	// Read original to verify created timestamp exists
 	original := readArticle(t, articleName)
-	if !strings.Contains(original, "created: 2026-01-01T00:00:00Z") {
+	if !strings.Contains(original, "created:") {
 		t.Error("Original article missing created timestamp")
 	}
 	
-	// Simulate update by writing new content
-	updatedContent := "---\ntags: [test, updated]\ncreated: 2026-01-01T00:00:00Z\nmodified: 2026-05-19T00:00:00Z\n---\n\n# Updated\n\nUpdated content.\n"
-	err = os.WriteFile(getArticlePath(articleName), []byte(updatedContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write updated content: %v", err)
+	// Update using --content flag
+	updatedContent := "# Updated\n\nUpdated content."
+	cmd = exec.Command("wiki", "update", articleName, "--content", updatedContent)
+	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to update article: %v\nOutput: %s", err, string(output))
 	}
 	
-	// Verify created timestamp preserved
+	// Verify content updated
 	updated := readArticle(t, articleName)
-	if !strings.Contains(updated, "created: 2026-01-01T00:00:00Z") {
+	if !strings.Contains(updated, "Updated content") {
+		t.Error("Article content was not updated")
+	}
+	if !strings.Contains(updated, "created:") {
 		t.Error("Created timestamp was not preserved")
+	}
+	if !strings.Contains(updated, "modified:") {
+		t.Error("Modified timestamp was not added")
 	}
 }
 

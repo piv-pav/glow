@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	createMeta []string
+	createMeta    []string
+	createContent string
+	createStdin   bool
 )
 
 var createCmd = &cobra.Command{
@@ -26,6 +28,8 @@ var createCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(createCmd)
 	createCmd.Flags().StringSliceVar(&createMeta, "meta", []string{}, "Metadata in key:value format (can be repeated)")
+	createCmd.Flags().StringVar(&createContent, "content", "", "Article content (skips editor)")
+	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin (skips editor)")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -66,10 +70,25 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Open editor for content
-	content, err := openEditor("")
-	if err != nil {
-		return fmt.Errorf("failed to open editor: %w", err)
+	// Get content from flag, stdin, or editor
+	var content string
+	if createStdin {
+		// Read from stdin
+		data, err := os.ReadFile("/dev/stdin")
+		if err != nil {
+			return fmt.Errorf("failed to read stdin: %w", err)
+		}
+		content = string(data)
+	} else if createContent != "" {
+		// Use content from flag
+		content = createContent
+	} else {
+		// Open editor
+		var err error
+		content, err = openEditor("")
+		if err != nil {
+			return fmt.Errorf("failed to open editor: %w", err)
+		}
 	}
 	art.Content = content
 

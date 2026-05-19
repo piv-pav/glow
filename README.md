@@ -60,7 +60,11 @@ wiki -w work create "work-notes"
 ```bash
 # Create article
 wiki create "article-name"
-wiki create "folder/article-name" --meta tags:go,cli --meta project:glow
+wiki create "folder/article-name" --meta "tags:go" --meta "project:glow"
+
+# Create with content (no editor - LLM-friendly)
+wiki create "article-name" --content "# Title\n\nContent here"
+echo "# Title\n\nContent" | wiki create "article-name" --stdin
 
 # Read article
 wiki read "article-name"                    # Content only
@@ -72,11 +76,14 @@ wiki read "article-name" --sections         # List all sections
 wiki show "article-name"
 wiki cat "article-name" -s "Examples"
 
-# Update article (opens editor)
-wiki update "article-name"
+# Update article
+wiki update "article-name"                  # Opens editor
+wiki update "article-name" --content "New content"  # No editor
+echo "New content" | wiki update "article-name" --stdin
 
 # Update specific section
 wiki update "article-name" --section="Installation"
+wiki update "article-name" --section="Installation" --content "New section content"
 
 # Append content
 wiki append "article-name" "Additional content here"

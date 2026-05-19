@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pavelpivovarov/glow/internal/index"
@@ -11,6 +12,8 @@ import (
 
 var (
 	updateSection string
+	updateContent string
+	updateStdin   bool
 )
 
 var updateCmd = &cobra.Command{
@@ -24,6 +27,8 @@ var updateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(updateCmd)
 	updateCmd.Flags().StringVar(&updateSection, "section", "", "Update only specific section by heading")
+	updateCmd.Flags().StringVar(&updateContent, "content", "", "New content (skips editor)")
+	updateCmd.Flags().BoolVar(&updateStdin, "stdin", false, "Read content from stdin (skips editor)")
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
@@ -59,10 +64,25 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		initialContent = art.Content
 	}
 
-	// Open editor
-	newContent, err := openEditor(initialContent)
-	if err != nil {
-		return fmt.Errorf("failed to open editor: %w", err)
+	// Get content from flag, stdin, or editor
+	var newContent string
+	if updateStdin {
+		// Read from stdin
+		data, err := os.ReadFile("/dev/stdin")
+		if err != nil {
+			return fmt.Errorf("failed to read stdin: %w", err)
+		}
+		newContent = string(data)
+	} else if updateContent != "" {
+		// Use content from flag
+		newContent = updateContent
+	} else {
+		// Open editor
+		var err error
+		newContent, err = openEditor(initialContent)
+		if err != nil {
+			return fmt.Errorf("failed to open editor: %w", err)
+		}
 	}
 
 	// Update article
