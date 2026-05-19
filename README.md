@@ -23,10 +23,10 @@ Or build from source:
 ```bash
 git clone https://github.com/pavelpivovarov/glow
 cd glow
-make install
+just install
 
 # Or build locally
-make build
+just build
 ./wiki --version
 ```
 
@@ -270,13 +270,13 @@ glow/
 
 ```bash
 # Build
-go build -o wiki
+just build
 
 # Run tests
-go test ./...
+just test
 
 # Install locally
-go install
+just install
 ```
 
 ## Contributing
