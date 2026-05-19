@@ -3,22 +3,23 @@ export VERSION := `git describe --tags --always --dirty 2>/dev/null || echo "dev
 default:
     @just --list
 
-# Build wiki binary locally
-build: test
-    go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o wiki ./cmd/wiki
+# Build wiki binary into ./bin
+build:
+    mkdir -p bin
+    go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o bin/wiki ./cmd/wiki
 
-# Install wiki to GOPATH/bin
+# Install wiki to GOPATH/bin (copies after tests pass)
 install: test
-    go install -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" ./cmd/wiki
+    cp bin/wiki $(go env GOPATH)/bin/wiki
 
 # Clean built binaries
 clean:
-    rm -f wiki
+    rm -rf bin
     rm -f $(go env GOPATH)/bin/wiki
 
-# Run tests
-test:
-    go test -v ./tests/
+# Run tests (builds first)
+test: build
+    PATH="$(pwd)/bin:$PATH" go test -v ./tests/
 
 # Format code
 fmt:
