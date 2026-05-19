@@ -62,6 +62,16 @@ wiki -w work create "work-notes"
 wiki create "article-name"
 wiki create "folder/article-name" --meta tags:go,cli --meta project:glow
 
+# Read article
+wiki read "article-name"                    # Content only
+wiki read "article-name" --raw              # Include frontmatter
+wiki read "article-name" --section="Setup"  # Read specific section
+wiki read "article-name" --sections         # List all sections
+
+# Aliases: show, cat
+wiki show "article-name"
+wiki cat "article-name" -s "Examples"
+
 # Update article (opens editor)
 wiki update "article-name"
 
