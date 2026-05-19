@@ -295,6 +295,7 @@ just fmt
 ```
 
 Tests use isolated environment (`WIKI_DATA=/tmp/glow-test-wiki`) and cover:
+
 - Create/append/update/delete operations
 - Section-targeted edits
 - Search with filters
@@ -308,18 +309,5 @@ Contributions welcome! Please feel free to submit a Pull Request.
 ## License
 
 MIT License - see LICENSE file for details.
-
-## Roadmap
-
-- [ ] Export to different formats (PDF, HTML)
-- [ ] Git integration for version control
-- [ ] Web interface
-- [ ] Article templates
-- [ ] Link validation
-- [ ] Backlinks tracking
-- [ ] Graph visualization
-- [ ] Import from other wikis/note systems
-
-## Author
 
 Pavel Pivovarov - [GitHub](https://github.com/pavelpivovarov)
