@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pavelpivovarov/glow/internal/index"
 	"github.com/spf13/cobra"
@@ -73,23 +74,20 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			fmt.Printf("   %s\n", result.Snippet)
 		}
 		
-		// Show metadata
+		// Collect metadata to show
 		var metaParts []string
+		
 		if tags, ok := result.Metadata["tags"].(string); ok && tags != "" {
-			metaParts = append(metaParts, "Tags: "+tags)
-		}
-		if project, ok := result.Metadata["project"].(string); ok && project != "" {
-			metaParts = append(metaParts, "Project: "+project)
-		}
-		if path, ok := result.Metadata["path"].(string); ok && path != "" {
-			metaParts = append(metaParts, "Path: "+path)
+			metaParts = append(metaParts, "tags: "+tags)
 		}
 		
+		if project, ok := result.Metadata["project"].(string); ok && project != "" {
+			metaParts = append(metaParts, "project: "+project)
+		}
+		
+		// Show metadata on single line if present
 		if len(metaParts) > 0 {
-			fmt.Printf("   %s\n", metaParts[0])
-			for _, part := range metaParts[1:] {
-				fmt.Printf("   %s\n", part)
-			}
+			fmt.Printf("   [%s]\n", strings.Join(metaParts, " | "))
 		}
 		
 		fmt.Println()
