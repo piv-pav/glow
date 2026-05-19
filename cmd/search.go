@@ -73,9 +73,23 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			fmt.Printf("   %s\n", result.Snippet)
 		}
 		
-		// Show some metadata
+		// Show metadata
+		var metaParts []string
 		if tags, ok := result.Metadata["tags"].(string); ok && tags != "" {
-			fmt.Printf("   Tags: %s\n", tags)
+			metaParts = append(metaParts, "Tags: "+tags)
+		}
+		if project, ok := result.Metadata["project"].(string); ok && project != "" {
+			metaParts = append(metaParts, "Project: "+project)
+		}
+		if path, ok := result.Metadata["path"].(string); ok && path != "" {
+			metaParts = append(metaParts, "Path: "+path)
+		}
+		
+		if len(metaParts) > 0 {
+			fmt.Printf("   %s\n", metaParts[0])
+			for _, part := range metaParts[1:] {
+				fmt.Printf("   %s\n", part)
+			}
 		}
 		
 		fmt.Println()
