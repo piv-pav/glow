@@ -49,9 +49,6 @@ wiki read "cba/eventhub/team-context" --section "Current State"
 
 # Include frontmatter
 wiki read "article-name" --raw
-
-# Only use built-in read tool if wiki read fails
-read /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/team-context.md
 ```
 
 ### Write/Update Articles
@@ -156,9 +153,6 @@ wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" "- N
 
 # OR update entire section if replacing content
 wiki update "cba/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
-
-# OR edit directly if major changes needed
-edit /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/logstash-decommission.md
 ```
 
 ### Creating New Articles
@@ -172,17 +166,6 @@ wiki create "cba/eventhub/new-topic" \
 
 # Or use stdin
 echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
-
-# For complex content, use write tool directly
-write /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/new-topic.md "---
-tags: [kafka, eventhub]
-project: eventhub
-created: 2026-05-19T10:00:00Z
----
-
-# New Topic
-
-Content here..."
 
 # Rebuild index after direct writes
 wiki wiki-rebuild
@@ -198,15 +181,6 @@ wiki wiki-rebuild
 - `cba/eventhub/quick-start` - Commands, troubleshooting
 
 **Platform**: 7 environments (Sandbox→Prod), ~100s tenants, AWS MSK + legacy on-prem Confluent
-
-## Direct File Access
-
-Articles stored at: `/Users/pavel.pivovarov/Library/Application Support/wiki/wiki/default/articles/`
-
-Use built-in `read`, `write`, `edit` tools for direct file manipulation when:
-- Batch operations needed
-- Complex edits required
-- Editor-based commands not suitable for agent
 
 ## Taskwarrior Integration
 
