@@ -10,10 +10,12 @@ Wiki name: `default`
 
 ## Structure
 
-- `cba/eventhub/` - Team work, configs, decisions
-- `projects/` - Project tracking  
+- `cba/{team_name}/` - Team work, configs, decisions
+- `projects/{project_name}` - Project tracking  
 - `engineering/` - Engineering patterns
 - `preferences/` - User workflows
+
+- You can extend and change structure if necessary.
 
 ## Operations
 
@@ -118,19 +120,6 @@ wiki delete "article-name"
 
 ## Common Workflows
 
-### Finding Information
-
-```bash
-# Search for EventHub context
-wiki search "path:cba/eventhub/"
-
-# Search by topic
-wiki search "kafka MSK architecture"
-
-# Search by tag
-wiki search "tag:terraform"
-```
-
 ### Updating Knowledge
 
 ```bash
@@ -166,34 +155,7 @@ wiki create "cba/eventhub/new-topic" \
 
 # Or use stdin
 echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
-
-# Rebuild index after direct writes
-wiki wiki-rebuild
 ```
-
-## EventHub Context
-
-**Role**: Principal Engineer, EventHub team (Kafka/MSK platform at CBA)
-
-**Key articles** (read before EventHub work):
-- `cba/eventhub/team-context` - Current state, priorities
-- `cba/eventhub/platform-overview` - Technical overview
-- `cba/eventhub/quick-start` - Commands, troubleshooting
-
-**Platform**: 7 environments (Sandbox→Prod), ~100s tenants, AWS MSK + legacy on-prem Confluent
-
-## Taskwarrior Integration
-
-Pavel uses `task` command for todos. Add tasks when discovering action items:
-
-```bash
-task add project:eventhub priority:H "Description"
-```
-
-Projects: `eventhub`, `kafka-gateway`  
-Priority: H (this week), M (soon), L (backlog)
-
-**Don't duplicate in wiki.** Tasks = actions, wiki = knowledge.
 
 ## Index Management
 
