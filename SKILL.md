@@ -10,10 +10,12 @@ Wiki name: `default`
 
 ## Structure
 
-- `cba/eventhub/` - Team work, configs, decisions
-- `projects/` - Project tracking  
+- `cba/{team_name}/` - Team work, configs, decisions
+- `projects/{project_name}` - Project tracking  
 - `engineering/` - Engineering patterns
 - `preferences/` - User workflows
+
+- You can extend and change structure if necessary.
 
 ## Operations
 
@@ -49,9 +51,6 @@ wiki read "cba/eventhub/team-context" --section "Current State"
 
 # Include frontmatter
 wiki read "article-name" --raw
-
-# Only use built-in read tool if wiki read fails
-read /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/team-context.md
 ```
 
 ### Write/Update Articles
@@ -121,19 +120,6 @@ wiki delete "article-name"
 
 ## Common Workflows
 
-### Finding Information
-
-```bash
-# Search for EventHub context
-wiki search "path:cba/eventhub/"
-
-# Search by topic
-wiki search "kafka MSK architecture"
-
-# Search by tag
-wiki search "tag:terraform"
-```
-
 ### Updating Knowledge
 
 ```bash
@@ -156,9 +142,6 @@ wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" "- N
 
 # OR update entire section if replacing content
 wiki update "cba/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
-
-# OR edit directly if major changes needed
-edit /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/logstash-decommission.md
 ```
 
 ### Creating New Articles
@@ -172,54 +155,7 @@ wiki create "cba/eventhub/new-topic" \
 
 # Or use stdin
 echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
-
-# For complex content, use write tool directly
-write /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/new-topic.md "---
-tags: [kafka, eventhub]
-project: eventhub
-created: 2026-05-19T10:00:00Z
----
-
-# New Topic
-
-Content here..."
-
-# Rebuild index after direct writes
-wiki wiki-rebuild
 ```
-
-## EventHub Context
-
-**Role**: Principal Engineer, EventHub team (Kafka/MSK platform at CBA)
-
-**Key articles** (read before EventHub work):
-- `cba/eventhub/team-context` - Current state, priorities
-- `cba/eventhub/platform-overview` - Technical overview
-- `cba/eventhub/quick-start` - Commands, troubleshooting
-
-**Platform**: 7 environments (Sandbox→Prod), ~100s tenants, AWS MSK + legacy on-prem Confluent
-
-## Direct File Access
-
-Articles stored at: `/Users/pavel.pivovarov/Library/Application Support/wiki/wiki/default/articles/`
-
-Use built-in `read`, `write`, `edit` tools for direct file manipulation when:
-- Batch operations needed
-- Complex edits required
-- Editor-based commands not suitable for agent
-
-## Taskwarrior Integration
-
-Pavel uses `task` command for todos. Add tasks when discovering action items:
-
-```bash
-task add project:eventhub priority:H "Description"
-```
-
-Projects: `eventhub`, `kafka-gateway`  
-Priority: H (this week), M (soon), L (backlog)
-
-**Don't duplicate in wiki.** Tasks = actions, wiki = knowledge.
 
 ## Index Management
 
