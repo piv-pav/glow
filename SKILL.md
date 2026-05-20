@@ -38,7 +38,19 @@ wiki search "topic" -l 20
 # List all articles
 wiki list
 
-# Read specific article (use built-in read tool)
+# Read specific article - ALWAYS use wiki read command
+wiki read "cba/eventhub/team-context"
+
+# List sections in article
+wiki read "cba/eventhub/team-context" --sections
+
+# Read specific section only
+wiki read "cba/eventhub/team-context" --section "Current State"
+
+# Include frontmatter
+wiki read "article-name" --raw
+
+# Only use built-in read tool if wiki read fails
 read /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/team-context.md
 ```
 
@@ -51,17 +63,21 @@ wiki create "cba/eventhub/new-topic" --content "# Title\n\nContent here" --meta 
 # Or from stdin
 echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
 
-# Update article (LLM-friendly, no editor)
+# Update entire article (LLM-friendly, no editor)
 wiki update "article-name" --content "New content"
+
+# Update specific section only
+wiki update "article-name" --section "Phase 2" --content "Updated section content"
 
 # Or from stdin
 echo "Updated content" | wiki update "article-name" --stdin
+echo "Section content" | wiki update "article-name" --section "Phase 2" --stdin
 
-# Append to article
+# Append to article (end of file)
 wiki append "article-name" "Additional content"
 
-# Append to section
-wiki append "article-name" --section="Examples" "New example"
+# Append to specific section (under heading)
+wiki append "article-name" --section "Examples" "New example"
 ```
 
 ### Metadata Operations
@@ -124,13 +140,22 @@ wiki search "tag:terraform"
 # 1. Search for existing article
 wiki search "logstash"
 
-# 2. Read to check content
-read /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/logstash-decommission.md
+# 2. List sections to find what to update
+wiki read "cba/eventhub/logstash-decommission" --sections
 
-# 3. Append new information
+# 3. Read specific section
+wiki read "cba/eventhub/logstash-decommission" --section "Current State"
+
+# 4. Append new information (to end or specific section)
 wiki append "cba/eventhub/logstash-decommission" "## Update 2026-05-19
 
 New development: ..."
+
+# OR append to specific section
+wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" "- New blocker: ..."
+
+# OR update entire section if replacing content
+wiki update "cba/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
 
 # OR edit directly if major changes needed
 edit /Users/pavel.pivovarov/Library/Application\ Support/wiki/wiki/default/articles/cba/eventhub/logstash-decommission.md
