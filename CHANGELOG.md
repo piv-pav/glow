@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-23
+
+### Added
+- `--stdin` flag for `wiki append` to read content from stdin
+- `--content` flag for `wiki append` to provide content directly
+- `wiki meta get` subcommand to read metadata field values
+
+### Changed
+- `wiki append` now requires explicit `--content` or `--stdin` flag (positional content arg removed)
+- Consistent CLI API across `create`, `update`, and `append` — all use `--content` / `--stdin`
+
+### Removed
+- Positional content argument from `wiki append`
+
 ## [0.1.4] - 2026-05-19
 
 ### Changed

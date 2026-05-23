@@ -73,15 +73,21 @@ echo "Updated content" | wiki update "article-name" --stdin
 echo "Section content" | wiki update "article-name" --section "Phase 2" --stdin
 
 # Append to article (end of file)
-wiki append "article-name" "Additional content"
+echo "Additional content" | wiki append "article-name" --stdin
+wiki append "article-name" --content "Additional content"
 
 # Append to specific section (under heading)
-wiki append "article-name" --section "Examples" "New example"
+echo "New example" | wiki append "article-name" --section "Examples" --stdin
+wiki append "article-name" --section "Examples" --content "New example"
 ```
 
 ### Metadata Operations
 
 ```bash
+# Get metadata value
+wiki meta get "article-name" tags
+wiki meta get "article-name" status
+
 # Add tags
 wiki meta add "article-name" tags kafka eventhub
 
@@ -105,6 +111,19 @@ wiki move "article" "folder/article"
 wiki delete "article-name"
 ```
 
+## Mandatory Rules
+
+**Tagging**: Every new article MUST have `tags` metadata. Use `--meta "tags:..."` on create, or `wiki meta add` after.
+**Cross-linking**: Reference related articles with `[[folder/article]]` wikilinks in content.
+**Search first**: Always `wiki search` before writing to avoid duplicates.
+
+## CLI Tips
+
+- **`--stdin`**: Use `--stdin` flag to pipe content into `wiki create`, `wiki update`, or `wiki append`. Example: `echo "content" | wiki append "name" --stdin`
+- **`--content`**: Use `--content` flag for inline content on `wiki create`, `wiki update`, or `wiki append`. Example: `wiki append "name" --content "text"`
+- **`wiki meta get`**: Get a metadata field value. Example: `wiki meta get "name" tags`
+- **`--` separator**: Use `--` before article names that could be parsed as flags (e.g., starting with `-`).
+
 ## Behavior Guidelines
 
 **On every user request**: Check if related to projects/team/CBA/engineering/preferences/past work
@@ -115,8 +134,8 @@ wiki delete "article-name"
 - Search first to find existing articles
 - Read existing content to avoid conflicts
 - Use append for additions, or read + edit for updates
-- Add metadata (tags, projects) for better search
-- Use wikilinks `[[folder/article]]` in content
+- Add metadata (tags, projects) per mandatory rules above
+- Use wikilinks `[[folder/article]]` in content per mandatory rules above
 
 ## Common Workflows
 
@@ -133,12 +152,12 @@ wiki read "cba/eventhub/logstash-decommission" --sections
 wiki read "cba/eventhub/logstash-decommission" --section "Current State"
 
 # 4. Append new information (to end or specific section)
-wiki append "cba/eventhub/logstash-decommission" "## Update 2026-05-19
+echo "## Update 2026-05-19
 
-New development: ..."
+New development: ..." | wiki append "cba/eventhub/logstash-decommission" --stdin
 
 # OR append to specific section
-wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" "- New blocker: ..."
+echo "- New blocker: ..." | wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" --stdin
 
 # OR update entire section if replacing content
 wiki update "cba/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"

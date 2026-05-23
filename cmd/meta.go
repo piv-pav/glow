@@ -37,11 +37,19 @@ var metaDeleteCmd = &cobra.Command{
 	RunE:  runMetaDelete,
 }
 
+var metaGetCmd = &cobra.Command{
+	Use:   "get [article-name] [key]",
+	Short: "Get metadata field value",
+	Args:  cobra.ExactArgs(2),
+	RunE:  runMetaGet,
+}
+
 func init() {
 	rootCmd.AddCommand(metaCmd)
 	metaCmd.AddCommand(metaSetCmd)
 	metaCmd.AddCommand(metaAddCmd)
 	metaCmd.AddCommand(metaDeleteCmd)
+	metaCmd.AddCommand(metaGetCmd)
 }
 
 func runMetaSet(cmd *cobra.Command, args []string) error {
@@ -159,4 +167,29 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func runMetaGet(cmd *cobra.Command, args []string) error {
+	name := args[0]
+	key := args[1]
+
+	store := storage.New(wikiName)
+
+	// Read article
+	art, err := store.Read(name)
+	if err != nil {
+		return err
+	}
+
+	// Try string first, then array
+	if val, ok := art.GetMetadataString(key); ok {
+		fmt.Println(val)
+		return nil
+	}
+	if vals, ok := art.GetMetadataArray(key); ok {
+		fmt.Println(strings.Join(vals, ", "))
+		return nil
+	}
+
+	return fmt.Errorf("metadata key not found: %s", key)
 }
