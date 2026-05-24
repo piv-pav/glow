@@ -147,10 +147,10 @@ glow -w work list
 glow -w personal create "notes"
 
 # Verify index health
-glow wiki-verify
+glow verify
 
 # Rebuild index (if corrupted)
-glow wiki-rebuild
+glow rebuild
 ```
 
 ### Listing

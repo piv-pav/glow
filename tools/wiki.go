@@ -27,7 +27,7 @@ var wikiListCmd = &cobra.Command{
 }
 
 var wikiVerifyCmd = &cobra.Command{
-	Use:   "wiki-verify",
+	Use:   "verify",
 	Short: "Verify wiki index health",
 	Long:  `Verify the health of the wiki index and display statistics.`,
 	Args:  cobra.NoArgs,
@@ -35,7 +35,7 @@ var wikiVerifyCmd = &cobra.Command{
 }
 
 var wikiRebuildCmd = &cobra.Command{
-	Use:   "wiki-rebuild",
+	Use:   "rebuild",
 	Short: "Rebuild wiki index",
 	Long:  `Completely rebuild the wiki index from all articles. Use when index is corrupted.`,
 	Args:  cobra.NoArgs,

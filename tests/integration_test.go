@@ -145,7 +145,7 @@ func TestWikiAppend(t *testing.T) {
 	}
 
 	// Rebuild index for search to work
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	tests := []struct {
 		name    string
@@ -222,7 +222,7 @@ Section two content.
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	// Append to specific section using --content
 	_, err = runWiki("append", articleName, "--section=Section One", "--content", "New content in section one.")
@@ -380,7 +380,7 @@ func TestWikiDelete(t *testing.T) {
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	// Delete article
 	_, err = runWiki("delete", articleName)
@@ -471,7 +471,7 @@ func TestWikiSearch(t *testing.T) {
 	}
 
 	// Rebuild index
-	output, err := runWiki("wiki-rebuild")
+	output, err := runWiki("rebuild")
 	if err != nil {
 		t.Fatalf("Failed to rebuild index: %v\nOutput: %s", err, output)
 	}
@@ -549,7 +549,7 @@ func TestWikiMove(t *testing.T) {
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	// Move article
 	_, err = runWiki("move", oldName, newName)
@@ -592,7 +592,7 @@ func TestWikiMetadata(t *testing.T) {
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	// Test meta set
 	_, err = runWiki("meta", "set", articleName, "status", "draft")
@@ -643,7 +643,7 @@ func TestWikiMetaGet(t *testing.T) {
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	tests := []struct {
 		name   string
@@ -702,7 +702,7 @@ func TestWikiAppendStdin(t *testing.T) {
 		t.Fatalf("Failed to setup test article: %v", err)
 	}
 
-	runWiki("wiki-rebuild")
+	runWiki("rebuild")
 
 	// Append via stdin
 	stdinContent := "Appended via stdin."
@@ -939,15 +939,15 @@ func TestWikiListWikis(t *testing.T) {
 	}
 }
 
-// TestWikiVerify tests wiki-verify subcommand
+// TestWikiVerify tests verify subcommand
 func TestWikiVerify(t *testing.T) {
 	os.RemoveAll(testWikiData)
 	defer os.RemoveAll(testWikiData)
 
 	// Verify on empty wiki (default created by EnsureWikiExists)
-	output, err := runWiki("wiki-verify")
+	output, err := runWiki("verify")
 	if err != nil {
-		t.Fatalf("wiki-verify failed: %v\nOutput: %s", err, output)
+		t.Fatalf("verify failed: %v\nOutput: %s", err, output)
 	}
 	if !strings.Contains(output, "Index verification OK") {
 		t.Errorf("Expected verification OK, got: %s", output)
@@ -962,16 +962,16 @@ func TestWikiVerify(t *testing.T) {
 		t.Fatalf("create failed: %v", err)
 	}
 
-	output, err = runWiki("wiki-verify")
+	output, err = runWiki("verify")
 	if err != nil {
-		t.Fatalf("wiki-verify after create failed: %v\nOutput: %s", err, output)
+		t.Fatalf("verify after create failed: %v\nOutput: %s", err, output)
 	}
 	if !strings.Contains(output, "Document count: 1") {
 		t.Errorf("Expected 1 document, got: %s", output)
 	}
 
 	// Verify non-existent wiki
-	_, err = runWiki("wiki-verify", "--wiki", "no-such")
+	_, err = runWiki("verify", "--wiki", "no-such")
 	if err == nil {
 		t.Error("expected error verifying non-existent wiki")
 	}

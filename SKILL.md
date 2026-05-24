@@ -186,10 +186,10 @@ echo "# Title\n\nContent" | glow create "article-name" --stdin --meta "tags:valu
 
 ```bash
 # Verify index health
-glow glow-verify
+glow verify
 
 # Rebuild if corrupted
-glow glow-rebuild
+glow rebuild
 ```
 
 ---
