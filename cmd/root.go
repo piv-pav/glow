@@ -10,7 +10,7 @@ import (
 
 var (
 	wikiName string
-	Version  = "dev" // Set via ldflags: -X 'github.com/pavelpivovarov/glow/cmd.Version=v1.0.0'
+	Version  = "v0.2.1-dev" // Set via ldflags: -X 'github.com/pavelpivovarov/glow/cmd.Version=v1.0.0'
 )
 
 var rootCmd = &cobra.Command{
