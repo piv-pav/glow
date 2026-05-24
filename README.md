@@ -27,30 +27,30 @@ just install  # Runs tests then installs
 
 # Or build locally
 just build    # Runs tests then builds
-./wiki --version
+./glow --version
 ```
 
 ## Quick Start
 
 ```bash
 # Create an article
-wiki create "my-first-article"
+glow create "my-first-article"
 
 # Add metadata
-wiki meta add my-first-article tags go cli
-wiki meta set my-first-article author "Your Name"
+glow meta add my-first-article tags go cli
+glow meta set my-first-article author "Your Name"
 
 # Search articles
-wiki search "search term tag:go"
+glow search "search term tag:go"
 
 # List all articles
-wiki list
+glow list
 
 # Create a new wiki
-wiki wiki-create work
+glow wiki-create work
 
 # Use different wiki
-wiki -w work create "work-notes"
+glow -w work create "work-notes"
 ```
 
 ## Usage
@@ -59,108 +59,108 @@ wiki -w work create "work-notes"
 
 ```bash
 # Create article
-wiki create "article-name"
-wiki create "folder/article-name" --meta "tags:go" --meta "project:glow"
+glow create "article-name"
+glow create "folder/article-name" --meta "tags:go" --meta "project:glow"
 
 # Create with content (no editor - LLM-friendly)
-wiki create "article-name" --content "# Title\n\nContent here"
-echo "# Title\n\nContent" | wiki create "article-name" --stdin
+glow create "article-name" --content "# Title\n\nContent here"
+echo "# Title\n\nContent" | glow create "article-name" --stdin
 
 # Read article
-wiki read "article-name"                    # Content only
-wiki read "article-name" --raw              # Include frontmatter
-wiki read "article-name" --section="Setup"  # Read specific section
-wiki read "article-name" --sections         # List all sections
+glow read "article-name"                    # Content only
+glow read "article-name" --raw              # Include frontmatter
+glow read "article-name" --section="Setup"  # Read specific section
+glow read "article-name" --sections         # List all sections
 
 # Aliases: show, cat
-wiki show "article-name"
-wiki cat "article-name" -s "Examples"
+glow show "article-name"
+glow cat "article-name" -s "Examples"
 
 # Update article
-wiki update "article-name"                  # Opens editor
-wiki update "article-name" --content "New content"  # No editor
-echo "New content" | wiki update "article-name" --stdin
+glow update "article-name"                  # Opens editor
+glow update "article-name" --content "New content"  # No editor
+echo "New content" | glow update "article-name" --stdin
 
 # Update specific section
-wiki update "article-name" --section="Installation"
-wiki update "article-name" --section="Installation" --content "New section content"
+glow update "article-name" --section="Installation"
+glow update "article-name" --section="Installation" --content "New section content"
 
 # Append content
-wiki append "article-name" "Additional content here"
+glow append "article-name" "Additional content here"
 
 # Append to section
-wiki append "article-name" --section="Examples" "New example"
+glow append "article-name" --section="Examples" "New example"
 
 # Delete article
-wiki delete "article-name"
+glow delete "article-name"
 
 # Delete specific section
-wiki delete "article-name" --section="Section Heading"
+glow delete "article-name" --section="Section Heading"
 
 # Move/rename article
-wiki move "old-name" "new-name"
-wiki move "article" "folder/article"
+glow move "old-name" "new-name"
+glow move "article" "folder/article"
 ```
 
 ### Metadata Management
 
 ```bash
 # Set scalar field
-wiki meta set article-name author "Pavel"
-wiki meta set article-name status "draft"
+glow meta set article-name author "Pavel"
+glow meta set article-name status "draft"
 
 # Add to array field
-wiki meta add article-name tags go cli
-wiki meta add article-name projects glow
+glow meta add article-name tags go cli
+glow meta add article-name projects glow
 
 # Delete field
-wiki meta delete article-name status              # Delete entire field
-wiki meta delete article-name tags go             # Remove from array
+glow meta delete article-name status              # Delete entire field
+glow meta delete article-name tags go             # Remove from array
 ```
 
 ### Search
 
 ```bash
 # Simple search
-wiki search "golang"
+glow search "golang"
 
 # Search with filters
-wiki search "indexing tag:go tag:cli"
-wiki search "project:glow documentation"
-wiki search "path:team/ meeting notes"
+glow search "indexing tag:go tag:cli"
+glow search "project:glow documentation"
+glow search "path:team/ meeting notes"
 
 # Using explicit filters
-wiki search "query" --filter=tag:go --filter=project:glow -l 20
+glow search "query" --filter=tag:go --filter=project:glow -l 20
 ```
 
 ### Wiki Management
 
 ```bash
 # List all wikis
-wiki wiki-list
+glow wiki-list
 
 # Create new wiki
-wiki wiki-create work
+glow wiki-create work
 
 # Use specific wiki
-wiki -w work list
-wiki -w personal create "notes"
+glow -w work list
+glow -w personal create "notes"
 
 # Verify index health
-wiki wiki-verify
+glow wiki-verify
 
 # Rebuild index (if corrupted)
-wiki wiki-rebuild
+glow wiki-rebuild
 ```
 
 ### Listing
 
 ```bash
 # List all articles in current wiki
-wiki list
+glow list
 
 # List articles in specific wiki
-wiki -w work list
+glow -w work list
 ```
 
 ## Article Format
@@ -205,7 +205,7 @@ Override with `WIKI_DATA` environment variable:
 
 ```bash
 export WIKI_DATA=/path/to/your/wikis
-wiki list
+glow list
 ```
 
 ### Directory Structure
@@ -242,16 +242,16 @@ Filters can be embedded directly in the query:
 
 ```bash
 # Find Go CLI articles
-wiki search "tag:go tag:cli"
+glow search "tag:go tag:cli"
 
 # Find project documentation
-wiki search "project:glow architecture"
+glow search "project:glow architecture"
 
 # Find in specific folder
-wiki search "path:team/ retrospective"
+glow search "path:team/ retrospective"
 
 # Multiple criteria
-wiki search "kubernetes author:Pavel tag:devops"
+glow search "kubernetes author:Pavel tag:devops"
 ```
 
 ## Development
@@ -260,23 +260,26 @@ wiki search "kubernetes author:Pavel tag:devops"
 
 ```
 glow/
-├── cmd/               # Cobra commands
-│   ├── root.go
-│   ├── create.go
-│   ├── update.go
+├── main.go
+├── tools/             # Cobra command implementations
+│   ├── register.go
 │   ├── append.go
+│   ├── create.go
 │   ├── delete.go
-│   ├── move.go
-│   ├── search.go
+│   ├── helpers.go
 │   ├── list.go
 │   ├── meta.go
+│   ├── move.go
+│   ├── read.go
+│   ├── search.go
+│   ├── update.go
 │   └── wiki.go
 ├── internal/
 │   ├── article/       # Article parsing, metadata
 │   ├── storage/       # File operations
 │   ├── index/         # Bleve indexing
 │   └── config/        # Path management
-└── main.go
+└── tests/             # Integration tests
 ```
 
 ### Dependencies
