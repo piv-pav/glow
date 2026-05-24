@@ -1,11 +1,11 @@
-package main
+package tools
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/pavelpivovarov/glow/internal/index"
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/index"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +45,6 @@ var metaGetCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(metaCmd)
 	metaCmd.AddCommand(metaSetCmd)
 	metaCmd.AddCommand(metaAddCmd)
 	metaCmd.AddCommand(metaDeleteCmd)
@@ -56,6 +55,7 @@ func runMetaSet(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	key := args[1]
 	value := args[2]
+	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
@@ -64,21 +64,17 @@ func runMetaSet(cmd *cobra.Command, args []string) error {
 	}
 	defer idx.Close()
 
-	// Read article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// Set metadata
 	art.SetMetadata(key, value)
 
-	// Save
 	if err := store.Update(name, art); err != nil {
 		return err
 	}
 
-	// Update index
 	if err := idx.UpdateArticle(name, art); err != nil {
 		return fmt.Errorf("failed to update index: %w", err)
 	}
@@ -91,6 +87,7 @@ func runMetaAdd(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	key := args[1]
 	values := args[2:]
+	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
@@ -99,23 +96,19 @@ func runMetaAdd(cmd *cobra.Command, args []string) error {
 	}
 	defer idx.Close()
 
-	// Read article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// Add metadata
 	if err := art.AddMetadata(key, values...); err != nil {
 		return err
 	}
 
-	// Save
 	if err := store.Update(name, art); err != nil {
 		return err
 	}
 
-	// Update index
 	if err := idx.UpdateArticle(name, art); err != nil {
 		return fmt.Errorf("failed to update index: %w", err)
 	}
@@ -131,6 +124,7 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 	if len(args) > 2 {
 		value = args[2]
 	}
+	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
@@ -139,23 +133,19 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 	}
 	defer idx.Close()
 
-	// Read article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// Delete metadata
 	if err := art.DeleteMetadata(key, value); err != nil {
 		return err
 	}
 
-	// Save
 	if err := store.Update(name, art); err != nil {
 		return err
 	}
 
-	// Update index
 	if err := idx.UpdateArticle(name, art); err != nil {
 		return fmt.Errorf("failed to update index: %w", err)
 	}
@@ -172,16 +162,15 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 func runMetaGet(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	key := args[1]
+	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
 
-	// Read article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// Try string first, then array
 	if val, ok := art.GetMetadataString(key); ok {
 		fmt.Println(val)
 		return nil

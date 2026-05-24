@@ -1,10 +1,10 @@
-package main
+package tools
 
 import (
 	"fmt"
 
-	"github.com/pavelpivovarov/glow/internal/index"
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/index"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -21,14 +21,13 @@ var deleteCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.Flags().StringVar(&deleteSection, "section", "", "Delete only specific section by heading")
 }
 
 func runDelete(cmd *cobra.Command, args []string) error {
 	name := args[0]
+	wikiName := wikiNameFrom(cmd)
 
-	// Create storage and index
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
 	if err != nil {
@@ -37,7 +36,6 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	defer idx.Close()
 
 	if deleteSection != "" {
-		// Delete specific section
 		art, err := store.Read(name)
 		if err != nil {
 			return err
@@ -59,7 +57,6 @@ func runDelete(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Delete entire article
 	if err := store.Delete(name); err != nil {
 		return err
 	}

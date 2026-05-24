@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 
 // runWiki executes wiki command with WIKI_DATA set to test directory
 func runWiki(args ...string) (string, error) {
-	cmd := exec.Command("wiki", args...)
+	cmd := exec.Command("glow", args...)
 	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 
 	output, err := cmd.CombinedOutput()
@@ -110,7 +110,7 @@ func TestWikiCreate(t *testing.T) {
 			// Create article using --stdin flag
 			input := "# Test Content\n\nThis is test content."
 			args := append(tt.args, "--stdin")
-			cmd := exec.Command("sh", "-c", "echo '"+input+"' | wiki "+strings.Join(args, " "))
+			cmd := exec.Command("sh", "-c", "echo '"+input+"' | glow "+strings.Join(args, " "))
 			cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 
 			output, err := cmd.CombinedOutput()
@@ -266,7 +266,7 @@ func TestWikiUpdate(t *testing.T) {
 	articleName := "update-test"
 	initialContent := "# Initial\n\nInitial content."
 
-	cmd := exec.Command("sh", "-c", "echo '"+initialContent+"' | wiki create "+articleName+" --stdin --meta tags:test")
+	cmd := exec.Command("sh", "-c", "echo '"+initialContent+"' | glow create "+articleName+" --stdin --meta tags:test")
 	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to setup test article: %v\nOutput: %s", err, string(output))
@@ -280,7 +280,7 @@ func TestWikiUpdate(t *testing.T) {
 
 	// Update using --content flag
 	updatedContent := "# Updated\n\nUpdated content."
-	cmd = exec.Command("wiki", "update", articleName, "--content", updatedContent)
+	cmd = exec.Command("glow", "update", articleName, "--content", updatedContent)
 	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to update article: %v\nOutput: %s", err, string(output))
@@ -296,6 +296,72 @@ func TestWikiUpdate(t *testing.T) {
 	}
 	if !strings.Contains(updated, "modified:") {
 		t.Error("Modified timestamp was not added")
+	}
+}
+
+// TestWikiUpdateMeta tests updating metadata via update --meta
+func TestWikiUpdateMeta(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Setup: create article
+	articleName := "update-meta-test"
+	_, err := runWiki("create", articleName, "--content", "# Meta Test\n\nContent.", "--meta", "status:draft")
+	if err != nil {
+		t.Fatalf("Failed to create article: %v", err)
+	}
+
+	// Verify initial metadata
+	output, err := runWiki("meta", "get", articleName, "status")
+	if err != nil {
+		t.Fatalf("meta get failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "draft") {
+		t.Errorf("Expected status=draft, got: %s", output)
+	}
+
+	// Update metadata via update --meta (scalar)
+	_, err = runWiki("update", articleName, "--content", "# Updated\n\nUpdated content.", "--meta", "status:published", "--meta", "author:test")
+	if err != nil {
+		t.Fatalf("update --meta failed: %v", err)
+	}
+
+	// Verify scalar metadata changed
+	output, err = runWiki("meta", "get", articleName, "status")
+	if err != nil {
+		t.Fatalf("meta get failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "published") {
+		t.Errorf("Expected status=published, got: %s", output)
+	}
+
+	// Verify new metadata added
+	output, err = runWiki("meta", "get", articleName, "author")
+	if err != nil {
+		t.Fatalf("meta get failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "test") {
+		t.Errorf("Expected author=test, got: %s", output)
+	}
+
+	// Update with array metadata via comma-separated value
+	_, err = runWiki("update", articleName, "--meta", "tags:go,cli")
+	if err != nil {
+		t.Fatalf("update --meta with array failed: %v", err)
+	}
+
+	output, err = runWiki("meta", "get", articleName, "tags")
+	if err != nil {
+		t.Fatalf("meta get tags failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "go") || !strings.Contains(output, "cli") {
+		t.Errorf("Expected tags=go,cli, got: %s", output)
+	}
+
+	// Verify content was also updated
+	content := readArticle(t, articleName)
+	if !strings.Contains(content, "Updated content") {
+		t.Error("Content should also be updated")
 	}
 }
 
@@ -640,7 +706,7 @@ func TestWikiAppendStdin(t *testing.T) {
 
 	// Append via stdin
 	stdinContent := "Appended via stdin."
-	cmd := exec.Command("sh", "-c", "echo '"+stdinContent+"' | wiki append "+articleName+" --stdin")
+	cmd := exec.Command("sh", "-c", "echo '"+stdinContent+"' | glow append "+articleName+" --stdin")
 	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 
 	output, err := cmd.CombinedOutput()
@@ -656,7 +722,7 @@ func TestWikiAppendStdin(t *testing.T) {
 
 	// Append to section via stdin
 	sectionContent := "Appended to section via stdin."
-	cmd = exec.Command("sh", "-c", "echo '"+sectionContent+"' | wiki append "+articleName+" --section \"Initial\" --stdin")
+	cmd = exec.Command("sh", "-c", "echo '"+sectionContent+"' | glow append "+articleName+" --section \"Initial\" --stdin")
 	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
 
 	output, err = cmd.CombinedOutput()
@@ -667,5 +733,246 @@ func TestWikiAppendStdin(t *testing.T) {
 	content = readArticle(t, articleName)
 	if !strings.Contains(content, sectionContent) {
 		t.Errorf("Article does not contain section stdin content. Got:\n%s", content)
+	}
+}
+
+// TestWikiList tests listing articles
+func TestWikiList(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// List empty wiki
+	output, err := runWiki("list")
+	if err != nil {
+		t.Fatalf("list on empty wiki failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "No articles") {
+		t.Errorf("Expected 'No articles' in output, got: %s", output)
+	}
+
+	// Create some articles
+	for _, name := range []string{"alpha", "beta", "gamma"} {
+		_, err := runWiki("create", name, "--content", "# "+name+"\n\nContent.")
+		if err != nil {
+			t.Fatalf("Failed to create article %s: %v", name, err)
+		}
+	}
+
+	// List with articles
+	output, err = runWiki("list")
+	if err != nil {
+		t.Fatalf("list failed: %v\nOutput: %s", err, output)
+	}
+
+	for _, name := range []string{"alpha", "beta", "gamma"} {
+		if !strings.Contains(output, name) {
+			t.Errorf("Expected %s in list output, got: %s", name, output)
+		}
+	}
+
+	// Check article count shown
+	if !strings.Contains(output, "(3)") {
+		t.Errorf("Expected article count (3) in output, got: %s", output)
+	}
+}
+
+// TestWikiRead tests reading articles
+func TestWikiRead(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create article with sections (via --content, frontmatter added automatically)
+	content := `# Title
+
+Intro.
+
+## Section A
+
+Content A.
+
+## Section B
+
+Content B.`
+	cmd := exec.Command("sh", "-c", "echo '"+content+"' | glow create read-test --stdin --meta tags:test")
+	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to create article: %v\nOutput: %s", err, string(output))
+	}
+
+	// Read without --raw (should omit frontmatter)
+	output, err := runWiki("read", "read-test")
+	if err != nil {
+		t.Fatalf("read failed: %v\nOutput: %s", err, output)
+	}
+	if strings.Contains(output, "tags:") {
+		t.Error("default read should not include frontmatter")
+	}
+	if !strings.Contains(output, "Intro.") {
+		t.Error("default read should include content")
+	}
+
+	// Read with --raw (should include frontmatter)
+	output, err = runWiki("read", "read-test", "--raw")
+	if err != nil {
+		t.Fatalf("read --raw failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "tags:") {
+		t.Error("raw read should include frontmatter")
+	}
+
+	// Read with --sections (list sections)
+	output, err = runWiki("read", "read-test", "--sections")
+	if err != nil {
+		t.Fatalf("read --sections failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "Title") {
+		t.Error("sections output missing Title")
+	}
+	if !strings.Contains(output, "Section A") {
+		t.Error("sections output missing Section A")
+	}
+	if !strings.Contains(output, "Section B") {
+		t.Error("sections output missing Section B")
+	}
+
+	// Read specific section
+	output, err = runWiki("read", "read-test", "--section", "Section A")
+	if err != nil {
+		t.Fatalf("read --section failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "Content A.") {
+		t.Errorf("section read missing Content A, got: %s", output)
+	}
+	if strings.Contains(output, "Content B.") {
+		t.Error("section read should not include other sections")
+	}
+
+	// Read non-existent article
+	_, err = runWiki("read", "no-such-article")
+	if err == nil {
+		t.Error("expected error reading non-existent article")
+	}
+
+	// Read non-existent section
+	_, err = runWiki("read", "read-test", "--section", "NoSection")
+	if err == nil {
+		t.Error("expected error reading non-existent section")
+	}
+}
+
+// TestWikiCreateWiki tests wiki subcommands
+func TestWikiCreateWiki(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create a new wiki
+	output, err := runWiki("wiki-create", "mywiki")
+	if err != nil {
+		t.Fatalf("wiki-create failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "Created wiki: mywiki") {
+		t.Errorf("Unexpected output: %s", output)
+	}
+
+	// Create duplicate wiki
+	_, err = runWiki("wiki-create", "mywiki")
+	if err == nil {
+		t.Error("expected error on duplicate wiki creation")
+	}
+
+	// Articles in new wiki should be separate from default
+	_, err = runWiki("create", "test-article", "--content", "# Hello", "--wiki", "mywiki")
+	if err != nil {
+		t.Fatalf("create in mywiki failed: %v", err)
+	}
+
+	// Should not appear in default wiki
+	output, err = runWiki("list")
+	if err != nil {
+		t.Fatalf("list failed: %v", err)
+	}
+	if strings.Contains(output, "test-article") {
+		t.Error("article in mywiki should not appear in default wiki list")
+	}
+
+	// Should appear in mywiki
+	output, err = runWiki("list", "--wiki", "mywiki")
+	if err != nil {
+		t.Fatalf("list --wiki mywiki failed: %v", err)
+	}
+	if !strings.Contains(output, "test-article") {
+		t.Errorf("article not found in mywiki: %s", output)
+	}
+}
+
+// TestWikiListWikis tests wiki-list subcommand
+func TestWikiListWikis(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Should have default wiki
+	output, err := runWiki("wiki-list")
+	if err != nil {
+		t.Fatalf("wiki-list failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "default") {
+		t.Errorf("Expected default wiki in list, got: %s", output)
+	}
+
+	// Create additional wikis
+	for _, name := range []string{"docs", "notes"} {
+		_, err := runWiki("wiki-create", name)
+		if err != nil {
+			t.Fatalf("wiki-create %s failed: %v", name, err)
+		}
+	}
+
+	output, err = runWiki("wiki-list")
+	if err != nil {
+		t.Fatalf("wiki-list failed: %v\nOutput: %s", err, output)
+	}
+
+	for _, name := range []string{"default", "docs", "notes"} {
+		if !strings.Contains(output, name) {
+			t.Errorf("Expected %s in wiki list, got: %s", name, output)
+		}
+	}
+}
+
+// TestWikiVerify tests wiki-verify subcommand
+func TestWikiVerify(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Verify on empty wiki (default created by EnsureWikiExists)
+	output, err := runWiki("wiki-verify")
+	if err != nil {
+		t.Fatalf("wiki-verify failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "Index verification OK") {
+		t.Errorf("Expected verification OK, got: %s", output)
+	}
+	if !strings.Contains(output, "Document count: 0") {
+		t.Errorf("Expected 0 documents, got: %s", output)
+	}
+
+	// Create an article and verify count updates
+	_, err = runWiki("create", "test-art", "--content", "# Test")
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+
+	output, err = runWiki("wiki-verify")
+	if err != nil {
+		t.Fatalf("wiki-verify after create failed: %v\nOutput: %s", err, output)
+	}
+	if !strings.Contains(output, "Document count: 1") {
+		t.Errorf("Expected 1 document, got: %s", output)
+	}
+
+	// Verify non-existent wiki
+	_, err = runWiki("wiki-verify", "--wiki", "no-such")
+	if err == nil {
+		t.Error("expected error verifying non-existent wiki")
 	}
 }

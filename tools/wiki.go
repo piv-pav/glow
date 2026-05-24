@@ -1,12 +1,12 @@
-package main
+package tools
 
 import (
 	"fmt"
 
-	"github.com/pavelpivovarov/glow/internal/article"
-	"github.com/pavelpivovarov/glow/internal/config"
-	"github.com/pavelpivovarov/glow/internal/index"
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/article"
+	"git.netra.pivpav.com/public/glow/internal/config"
+	"git.netra.pivpav.com/public/glow/internal/index"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -42,22 +42,13 @@ var wikiRebuildCmd = &cobra.Command{
 	RunE:  runWikiRebuild,
 }
 
-func init() {
-	rootCmd.AddCommand(wikiCreateCmd)
-	rootCmd.AddCommand(wikiListCmd)
-	rootCmd.AddCommand(wikiVerifyCmd)
-	rootCmd.AddCommand(wikiRebuildCmd)
-}
-
 func runWikiCreate(cmd *cobra.Command, args []string) error {
 	name := args[0]
 
-	// Create wiki structure
 	if err := config.CreateWiki(name); err != nil {
 		return err
 	}
 
-	// Initialize index
 	idx, err := index.New(name)
 	if err != nil {
 		return fmt.Errorf("failed to initialize index: %w", err)
@@ -65,7 +56,7 @@ func runWikiCreate(cmd *cobra.Command, args []string) error {
 	defer idx.Close()
 
 	fmt.Printf("Created wiki: %s\n", name)
-	
+
 	wikiPath, _ := config.GetWikiPath(name)
 	fmt.Printf("Location: %s\n", wikiPath)
 
@@ -94,7 +85,8 @@ func runWikiList(cmd *cobra.Command, args []string) error {
 }
 
 func runWikiVerify(cmd *cobra.Command, args []string) error {
-	// Ensure wiki exists
+	wikiName := wikiNameFrom(cmd)
+
 	exists, err := config.WikiExists(wikiName)
 	if err != nil {
 		return err
@@ -128,7 +120,8 @@ func runWikiVerify(cmd *cobra.Command, args []string) error {
 }
 
 func runWikiRebuild(cmd *cobra.Command, args []string) error {
-	// Ensure wiki exists
+	wikiName := wikiNameFrom(cmd)
+
 	exists, err := config.WikiExists(wikiName)
 	if err != nil {
 		return err
@@ -139,7 +132,6 @@ func runWikiRebuild(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Rebuilding index for wiki '%s'...\n", wikiName)
 
-	// Load all articles
 	store := storage.New(wikiName)
 	articleNames, err := store.List()
 	if err != nil {
@@ -156,7 +148,6 @@ func runWikiRebuild(cmd *cobra.Command, args []string) error {
 		articles[name] = art
 	}
 
-	// Rebuild index
 	idx, err := index.New(wikiName)
 	if err != nil {
 		return fmt.Errorf("failed to open index: %w", err)

@@ -15,13 +15,13 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 ## Installation
 
 ```bash
-go install github.com/CBA-General/glow/cmd/wiki@latest
+go install git.netra.pivpav.com/public/glow@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/CBA-General/glow
+git clone https://git.netra.pivpav.com/public/glow
 cd glow
 just install  # Runs tests then installs
 
@@ -320,4 +320,4 @@ Contributions welcome! Please feel free to submit a Pull Request.
 
 MIT License - see LICENSE file for details.
 
-Pavel Pivovarov - [GitHub](https://github.com/pavelpivovarov)
+Pavel Pivovarov - [GitHub](https://git.netra.pivpav.com/pivpav/glow)

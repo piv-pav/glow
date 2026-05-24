@@ -1,10 +1,10 @@
-package main
+package tools
 
 import (
 	"fmt"
 
-	"github.com/pavelpivovarov/glow/internal/index"
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/index"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -16,15 +16,11 @@ var moveCmd = &cobra.Command{
 	RunE:  runMove,
 }
 
-func init() {
-	rootCmd.AddCommand(moveCmd)
-}
-
 func runMove(cmd *cobra.Command, args []string) error {
 	oldName := args[0]
 	newName := args[1]
+	wikiName := wikiNameFrom(cmd)
 
-	// Create storage and index
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
 	if err != nil {
@@ -32,29 +28,24 @@ func runMove(cmd *cobra.Command, args []string) error {
 	}
 	defer idx.Close()
 
-	// Read article before move (to re-index with new name)
 	art, err := store.Read(oldName)
 	if err != nil {
 		return err
 	}
 
-	// Move in storage
 	if err := store.Move(oldName, newName); err != nil {
 		return err
 	}
 
-	// Delete old from index
 	if err := idx.DeleteArticle(oldName); err != nil {
 		return fmt.Errorf("failed to remove old entry from index: %w", err)
 	}
 
-	// Re-read with new path metadata
 	art, err = store.Read(newName)
 	if err != nil {
 		return err
 	}
 
-	// Index with new name
 	if err := idx.IndexArticle(newName, art); err != nil {
 		return fmt.Errorf("failed to index article with new name: %w", err)
 	}

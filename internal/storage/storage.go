@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pavelpivovarov/glow/internal/article"
-	"github.com/pavelpivovarov/glow/internal/config"
+	"git.netra.pivpav.com/public/glow/internal/article"
+	"git.netra.pivpav.com/public/glow/internal/config"
 )
 
 // Storage handles article file operations

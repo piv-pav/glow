@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-24
+
+### Changed
+- **Binary renamed**: `wiki` → `glow` (matches repo name). Install with `go install git.netra.pivpav.com/public/glow@latest`
+- **Module path**: `github.com/pavelpivovarov/glow` → `git.netra.pivpav.com/public/glow`
+- **Restructured**: `main.go` at repo root, subcommands in `tools/` package, removed `cmd/`
+- **Build system**: justfile targets use `glow` binary name
+- `--meta` flags changed from `StringSliceVar` to `StringArrayVar` (commas in values preserved)
+
+### Added
+- `update --meta` flag for updating metadata alongside content changes
+- Integration tests for `list`, `read`, `wiki-create`, `wiki-list`, `wiki-verify`, `update --meta` (30 total)
+
+### Fixed
+- `update` no longer opens editor when only `--meta` flags provided (hangs in non-interactive use)
+- All import paths updated to new module path
+
 ## [0.2.1] - 2026-05-24
 
 ### Added

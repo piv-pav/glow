@@ -1,11 +1,11 @@
-package main
+package tools
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/pavelpivovarov/glow/internal/index"
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/index"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,6 @@ var appendCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(appendCmd)
 	appendCmd.Flags().StringVar(&appendSection, "section", "", "Append to specific section by heading")
 	appendCmd.Flags().StringVar(&appendContent, "content", "", "Content to append")
 	appendCmd.Flags().BoolVar(&appendStdin, "stdin", false, "Read content from stdin")
@@ -38,8 +37,9 @@ func init() {
 
 func runAppend(cmd *cobra.Command, args []string) error {
 	name := args[0]
-	var content string
+	wikiName := wikiNameFrom(cmd)
 
+	var content string
 	if appendStdin {
 		data, err := os.ReadFile("/dev/stdin")
 		if err != nil {
@@ -50,7 +50,6 @@ func runAppend(cmd *cobra.Command, args []string) error {
 		content = appendContent
 	}
 
-	// Create storage and index
 	store := storage.New(wikiName)
 	idx, err := index.New(wikiName)
 	if err != nil {
@@ -58,13 +57,11 @@ func runAppend(cmd *cobra.Command, args []string) error {
 	}
 	defer idx.Close()
 
-	// Read existing article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// Append content
 	if appendSection != "" {
 		if err := art.AppendToSection(appendSection, content); err != nil {
 			return err
@@ -76,12 +73,10 @@ func runAppend(cmd *cobra.Command, args []string) error {
 		art.Content += "\n" + content
 	}
 
-	// Save
 	if err := store.Update(name, art); err != nil {
 		return err
 	}
 
-	// Update index
 	if err := idx.UpdateArticle(name, art); err != nil {
 		return fmt.Errorf("failed to update index: %w", err)
 	}

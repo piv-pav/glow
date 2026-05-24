@@ -1,10 +1,10 @@
-package main
+package tools
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,6 @@ var readCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(readCmd)
 	readCmd.Flags().BoolVarP(&readRaw, "raw", "r", false, "Show raw content including frontmatter")
 	readCmd.Flags().StringVarP(&readSection, "section", "s", "", "Read only specific section by heading")
 	readCmd.Flags().BoolVar(&readSections, "sections", false, "List all sections in the article")
@@ -32,16 +31,15 @@ func init() {
 
 func runRead(cmd *cobra.Command, args []string) error {
 	name := args[0]
+	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
 
-	// Read article
 	art, err := store.Read(name)
 	if err != nil {
 		return err
 	}
 
-	// If listing sections
 	if readSections {
 		sections := art.ParseSections()
 		fmt.Printf("Sections in %s:\n\n", name)
@@ -55,18 +53,15 @@ func runRead(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// If section specified, find and read only that section
 	if readSection != "" {
 		section := art.FindSection(readSection)
 		if section == nil {
 			return fmt.Errorf("section not found: %s", readSection)
 		}
-		
+
 		if readRaw {
-			// Show section with heading
 			fmt.Print(section.Content)
 		} else {
-			// Show section content without heading line
 			lines := splitLines(section.Content)
 			if len(lines) > 1 {
 				fmt.Print(joinLines(lines[1:]))
@@ -76,14 +71,12 @@ func runRead(cmd *cobra.Command, args []string) error {
 	}
 
 	if readRaw {
-		// Show full raw content with frontmatter
 		data, err := art.Serialize()
 		if err != nil {
 			return fmt.Errorf("failed to serialize article: %w", err)
 		}
 		fmt.Print(string(data))
 	} else {
-		// Show just the content
 		fmt.Print(art.Content)
 	}
 

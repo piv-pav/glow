@@ -5,7 +5,7 @@ description: Personal knowledge base using GLOW wiki. Store and retrieve learnin
 
 # Knowledge Skill
 
-GLOW wiki binary: `wiki` (installed via go install)
+GLOW wiki binary: `glow` (installed via go install . or go install git.netra.pivpav.com/public/glow@latest)
 Wiki name: `default`
 
 ## Structure
@@ -114,15 +114,15 @@ wiki delete "article-name" --section "Section Heading"
 
 ## Mandatory Rules
 
-**Tagging**: Every new article MUST have `tags` metadata. Use `--meta "tags:..."` on create, or `wiki meta add` after.
+**Tagging**: Every new article MUST have `tags` metadata. Use `--meta "tags:..."` on create, or `glow meta add` after.
 **Cross-linking**: Reference related articles with `[[folder/article]]` wikilinks in content.
-**Search first**: Always `wiki search` before writing to avoid duplicates.
+**Search first**: Always `glow search` before writing to avoid duplicates.
 
 ## CLI Tips
 
-- **`--stdin`**: Use `--stdin` flag to pipe content into `wiki create`, `wiki update`, or `wiki append`. Example: `echo "content" | wiki append "name" --stdin`
-- **`--content`**: Use `--content` flag for inline content on `wiki create`, `wiki update`, or `wiki append`. Example: `wiki append "name" --content "text"`
-- **`wiki meta get`**: Get a metadata field value. Example: `wiki meta get "name" tags`
+- **`--stdin`**: Use `--stdin` flag to pipe content into `glow create`, `glow update`, or `glow append`. Example: `echo "content" | wiki append "name" --stdin`
+- **`--content`**: Use `--content` flag for inline content on `glow create`, `glow update`, or `glow append`. Example: `glow append "name" --content "text"`
+- **`glow meta get`**: Get a metadata field value. Example: `glow meta get "name" tags`
 - **`--` separator**: Use `--` before article names that could be parsed as flags (e.g., starting with `-`).
 
 ## Behavior Guidelines

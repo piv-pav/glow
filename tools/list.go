@@ -1,9 +1,9 @@
-package main
+package tools
 
 import (
 	"fmt"
 
-	"github.com/pavelpivovarov/glow/internal/storage"
+	"git.netra.pivpav.com/public/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -15,11 +15,8 @@ var listCmd = &cobra.Command{
 	RunE:  runList,
 }
 
-func init() {
-	rootCmd.AddCommand(listCmd)
-}
-
 func runList(cmd *cobra.Command, args []string) error {
+	wikiName := wikiNameFrom(cmd)
 	store := storage.New(wikiName)
 
 	articles, err := store.List()

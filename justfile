@@ -3,20 +3,20 @@ export VERSION := `echo v$(cat VERSION)-dev`
 default:
     @just --list
 
-# Build wiki binary into ./bin
+# Build glow binary into ./bin
 build:
     mkdir -p bin
-    go build -ldflags "-X main.Version={{VERSION}}" -o bin/wiki ./cmd/
-    chmod +x bin/wiki
+    go build -ldflags "-X main.Version={{VERSION}}" -o bin/glow .
+    chmod +x bin/glow
 
-# Install wiki to GOPATH/bin (copies after tests pass)
+# Install glow to GOPATH/bin (copies after tests pass)
 install: test
-    cp bin/wiki $(go env GOPATH)/bin/wiki
+    cp bin/glow $(go env GOPATH)/bin/glow
 
 # Clean built binaries
 clean:
     rm -rf bin
-    rm -f $(go env GOPATH)/bin/wiki
+    rm -f $(go env GOPATH)/bin/glow
 
 # Run tests (builds first)
 test: build
