@@ -5,6 +5,8 @@ description: Personal knowledge base using GLOW wiki. Store and retrieve learnin
 
 # Knowledge Skill
 
+GLOW stands for Golang LLM-Oriented Wiki.
+
 GLOW wiki binary: `glow` (installed via go install . or go install git.netra.pivpav.com/public/glow@latest)
 Wiki name: `default`
 
@@ -23,93 +25,93 @@ Wiki name: `default`
 
 ```bash
 # Search content and metadata
-wiki search "search term"
+glow search "search term"
 
 # Search with filters
-wiki search "kafka tag:eventhub"
-wiki search "path:projects/eventhub/ architecture"
-wiki search "project:eventhub terraform"
+glow search "kafka tag:eventhub"
+glow search "path:projects/eventhub/ architecture"
+glow search "project:eventhub terraform"
 
 # More results
-wiki search "topic" -l 20
+glow search "topic" -l 20
 ```
 
 ### Read Articles
 
 ```bash
 # List all articles
-wiki list
+glow list
 
-# Read specific article - ALWAYS use wiki read command
-wiki read "projects/eventhub/team-context"
+# Read specific article - ALWAYS use glow read command
+glow read "projects/eventhub/team-context"
 
 # List sections in article
-wiki read "projects/eventhub/team-context" --sections
+glow read "projects/eventhub/team-context" --sections
 
 # Read specific section only
-wiki read "projects/eventhub/team-context" --section "Current State"
+glow read "projects/eventhub/team-context" --section "Current State"
 
 # Include frontmatter
-wiki read "article-name" --raw
+glow read "article-name" --raw
 ```
 
 ### Write/Update Articles
 
 ```bash
 # Create new article (LLM-friendly, no editor)
-wiki create "projects/eventhub/new-topic" --content "# Title\n\nContent here" --meta "tags:kafka" --meta "project:eventhub"
+glow create "projects/eventhub/new-topic" --content "# Title\n\nContent here" --meta "tags:kafka" --meta "project:eventhub"
 
 # Or from stdin
-echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
+echo "# Title\n\nContent" | glow create "article-name" --stdin --meta "tags:value"
 
 # Update entire article (LLM-friendly, no editor)
-wiki update "article-name" --content "New content"
+glow update "article-name" --content "New content"
 
 # Update specific section only
-wiki update "article-name" --section "Phase 2" --content "Updated section content"
+glow update "article-name" --section "Phase 2" --content "Updated section content"
 
 # Or from stdin
-echo "Updated content" | wiki update "article-name" --stdin
-echo "Section content" | wiki update "article-name" --section "Phase 2" --stdin
+echo "Updated content" | glow update "article-name" --stdin
+echo "Section content" | glow update "article-name" --section "Phase 2" --stdin
 
 # Append to article (end of file)
-echo "Additional content" | wiki append "article-name" --stdin
-wiki append "article-name" --content "Additional content"
+echo "Additional content" | glow append "article-name" --stdin
+glow append "article-name" --content "Additional content"
 
 # Append to specific section (under heading)
-echo "New example" | wiki append "article-name" --section "Examples" --stdin
-wiki append "article-name" --section "Examples" --content "New example"
+echo "New example" | glow append "article-name" --section "Examples" --stdin
+glow append "article-name" --section "Examples" --content "New example"
 ```
 
 ### Metadata Operations
 
 ```bash
 # Get metadata value
-wiki meta get "article-name" tags
-wiki meta get "article-name" status
+glow meta get "article-name" tags
+glow meta get "article-name" status
 
 # Add tags
-wiki meta add "article-name" tags kafka eventhub
+glow meta add "article-name" tags kafka eventhub
 
 # Set metadata
-wiki meta set "article-name" author "Pavel"
-wiki meta set "article-name" status "active"
+glow meta set "article-name" author "Pavel"
+glow meta set "article-name" status "active"
 
 # Remove metadata
-wiki meta delete "article-name" tags kafka
-wiki meta delete "article-name" status
+glow meta delete "article-name" tags kafka
+glow meta delete "article-name" status
 ```
 
 ### Article Management
 
 ```bash
 # Move/rename
-wiki move "old-name" "new-name"
-wiki move "article" "folder/article"
+glow move "old-name" "new-name"
+glow move "article" "folder/article"
 
 # Delete
-wiki delete "article-name"
-wiki delete "article-name" --section "Section Heading"
+glow delete "article-name"
+glow delete "article-name" --section "Section Heading"
 ```
 
 ## Mandatory Rules
@@ -136,7 +138,7 @@ wiki delete "article-name" --section "Section Heading"
 - Read existing content to avoid conflicts
 - Use append for additions, or read + edit for updates
 - Add metadata (tags, projects) per mandatory rules above
-- Use wikilinks `[[folder/article]]` in content per mandatory rules above
+- Use glowlinks `[[folder/article]]` in content per mandatory rules above
 
 ## Common Workflows
 
@@ -181,12 +183,12 @@ echo "# Title\n\nContent" | glow create "article-name" --stdin --meta "tags:valu
 
 ```bash
 # Verify index health
-glow wiki-verify
+glow glow-verify
 
 # Rebuild if corrupted
-glow wiki-rebuild
+glow glow-rebuild
 ```
 
 ---
 
-**Work silently.** Only report wiki activities if asked or critical context found.
+**Work silently.** Only report glow activities if asked or critical context found.
