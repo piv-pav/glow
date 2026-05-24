@@ -1,4 +1,4 @@
-export VERSION := `git describe --tags --always --dirty 2>/dev/null || echo "dev"`
+export VERSION := `echo v$(cat VERSION)-dev`
 
 default:
     @just --list
@@ -6,7 +6,7 @@ default:
 # Build wiki binary into ./bin
 build:
     mkdir -p bin
-    go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o bin/wiki ./cmd/
+    go build -ldflags "-X main.Version={{VERSION}}" -o bin/wiki ./cmd/
     chmod +x bin/wiki
 
 # Install wiki to GOPATH/bin (copies after tests pass)
