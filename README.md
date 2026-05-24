@@ -94,6 +94,9 @@ wiki append "article-name" --section="Examples" "New example"
 # Delete article
 wiki delete "article-name"
 
+# Delete specific section
+wiki delete "article-name" --section="Section Heading"
+
 # Move/rename article
 wiki move "old-name" "new-name"
 wiki move "article" "folder/article"

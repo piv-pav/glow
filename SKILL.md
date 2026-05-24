@@ -109,6 +109,7 @@ wiki move "article" "folder/article"
 
 # Delete
 wiki delete "article-name"
+wiki delete "article-name" --section "Section Heading"
 ```
 
 ## Mandatory Rules

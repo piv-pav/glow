@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -36,4 +36,8 @@ func init() {
 	if err := config.EnsureWikiExists("default"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to create default wiki: %v\n", err)
 	}
+}
+
+func main() {
+	Execute()
 }

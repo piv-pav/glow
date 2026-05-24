@@ -6,7 +6,8 @@ default:
 # Build wiki binary into ./bin
 build:
     mkdir -p bin
-    go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o bin/wiki ./cmd/wiki/
+    go build -ldflags "-X 'github.com/pavelpivovarov/glow/cmd.Version={{VERSION}}'" -o bin/wiki ./cmd/
+    chmod +x bin/wiki
 
 # Install wiki to GOPATH/bin (copies after tests pass)
 install: test

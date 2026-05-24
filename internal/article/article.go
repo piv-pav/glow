@@ -153,7 +153,7 @@ func (a *Article) ParseSections() []Section {
 func (a *Article) FindSection(heading string) *Section {
 	sections := a.ParseSections()
 	searchHeading := strings.ToLower(strings.TrimSpace(heading))
-	
+
 	// Remove leading # if present
 	searchHeading = strings.TrimLeft(searchHeading, "# ")
 
@@ -175,17 +175,24 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	}
 
 	lines := strings.Split(a.Content, "\n")
-	
+
 	// Build new content with updated section
 	var newLines []string
 	newLines = append(newLines, lines[:section.Start]...)
-	
+
 	// Add heading line
 	newLines = append(newLines, lines[section.Start])
-	
-	// Add new content
+
+	// Blank line after heading
+	newLines = append(newLines, "")
+
+	// Add new content (replacing old section body)
 	newLines = append(newLines, newContent)
-	
+
+	// Blank line before next section
+	newLines = append(newLines, "")
+
+	// Skip old section body (lines[section.Start+1 : section.End])
 	// Add rest of document
 	if section.End < len(lines) {
 		newLines = append(newLines, lines[section.End:]...)
@@ -196,6 +203,33 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 }
 
 // AppendToSection appends content to specific section
+func (a *Article) DeleteSection(heading string) error {
+	section := a.FindSection(heading)
+	if section == nil {
+		return fmt.Errorf("section not found: %s", heading)
+	}
+
+	lines := strings.Split(a.Content, "\n")
+
+	var newLines []string
+	newLines = append(newLines, lines[:section.Start]...)
+	if section.End < len(lines) {
+		newLines = append(newLines, lines[section.End:]...)
+	}
+
+	// Trim trailing newlines from remaining content
+	for len(newLines) > 0 && strings.TrimSpace(newLines[len(newLines)-1]) == "" {
+		newLines = newLines[:len(newLines)-1]
+	}
+	// Re-add single trailing newline
+	if len(newLines) > 0 {
+		newLines = append(newLines, "")
+	}
+
+	a.Content = strings.Join(newLines, "\n")
+	return nil
+}
+
 func (a *Article) AppendToSection(heading, content string) error {
 	section := a.FindSection(heading)
 	if section == nil {
@@ -208,14 +242,14 @@ func (a *Article) AppendToSection(heading, content string) error {
 	}
 
 	lines := strings.Split(a.Content, "\n")
-	
+
 	// Find insertion point (before next heading or end)
 	insertIdx := section.End
-	
+
 	var newLines []string
 	newLines = append(newLines, lines[:insertIdx]...)
 	newLines = append(newLines, "", content)
-	
+
 	if insertIdx < len(lines) {
 		newLines = append(newLines, lines[insertIdx:]...)
 	}

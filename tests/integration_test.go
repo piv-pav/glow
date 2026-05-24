@@ -329,6 +329,61 @@ func TestWikiDelete(t *testing.T) {
 	}
 }
 
+// TestWikiDeleteSection tests delete --section functionality
+func TestWikiDeleteSection(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Setup: create article with multiple sections
+	articleName := "delete-section-test"
+	content := "---\ntags: [test]\n---\n\n# Article\n\nIntro content.\n\n## Section One\n\nFirst section content.\n\n## Section Two\n\nSecond section content.\n\n## Section Three\n\nThird section content.\n"
+
+	os.MkdirAll(filepath.Join(testWikiData, "default", "articles"), 0755)
+	err := os.WriteFile(getArticlePath(articleName), []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to setup test article: %v", err)
+	}
+
+	// Delete Section Two
+	output, err := runWiki("delete", articleName, "--section", "Section Two")
+	if err != nil {
+		t.Fatalf("Failed to delete section: %v\nOutput: %s", err, output)
+	}
+
+	// Verify output mentions section deletion
+	if !strings.Contains(output, "Deleted section") {
+		t.Errorf("Expected output to mention section deletion, got: %s", output)
+	}
+
+	// Verify article still exists
+	remaining := readArticle(t, articleName)
+
+	// Section Two should be gone
+	if strings.Contains(remaining, "## Section Two") {
+		t.Error("Section Two still exists after deletion")
+	}
+	if strings.Contains(remaining, "Second section content") {
+		t.Error("Section Two content still exists after deletion")
+	}
+
+	// Other sections should remain
+	if !strings.Contains(remaining, "## Section One") {
+		t.Error("Section One missing after deleting Section Two")
+	}
+	if !strings.Contains(remaining, "## Section Three") {
+		t.Error("Section Three missing after deleting Section Two")
+	}
+	if !strings.Contains(remaining, "Intro content") {
+		t.Error("Intro content missing after deleting section")
+	}
+
+	// Test deleting non-existent section
+	_, err = runWiki("delete", articleName, "--section", "NonExistent")
+	if err == nil {
+		t.Error("Expected error when deleting non-existent section")
+	}
+}
+
 // TestWikiSearch tests search functionality
 func TestWikiSearch(t *testing.T) {
 	os.RemoveAll(testWikiData)
