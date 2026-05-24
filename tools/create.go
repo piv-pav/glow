@@ -82,7 +82,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		}
 		content = string(data)
 	} else if createContent != "" {
-		content = createContent
+		var err error
+		content, err = unescapeContent(createContent)
+		if err != nil {
+			return err
+		}
 	} else if createEditor {
 		var err error
 		content, err = openEditor("")

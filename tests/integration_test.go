@@ -976,3 +976,184 @@ func TestWikiVerify(t *testing.T) {
 		t.Error("expected error verifying non-existent wiki")
 	}
 }
+
+// TestWikiCreateContentEscaped tests --content with escape sequences in create
+func TestWikiCreateContentEscaped(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	tests := []struct {
+		name    string
+		content string // \\n etc in Go string = literal \n passed to glow
+		want    string
+	}{
+		{
+			name:    "newline in --content",
+			content: "line1\\nline2",
+			want:    "line1\nline2",
+		},
+		{
+			name:    "multiple newlines",
+			content: "first\\nsecond\\nthird",
+			want:    "first\nsecond\nthird",
+		},
+		{
+			name:    "tab in --content",
+			content: "a\\tb",
+			want:    "a\tb",
+		},
+		{
+			name:    "backslash in --content",
+			content: "path\\\\to\\\\file",
+			want:    "path\\to\\file",
+		},
+		{
+			name:    "no escapes unchanged",
+			content: "plain text",
+			want:    "plain text",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := runWiki("create", "test-"+tt.name, "--content", tt.content)
+			if err != nil {
+				t.Fatalf("create failed: %v", err)
+			}
+
+			content := readArticle(t, "test-"+tt.name)
+			// Extract content after frontmatter (everything after ---\n---\n)
+			idx := strings.Index(content, "\n---\n")
+			var body string
+			if idx > 0 {
+				body = content[idx+5:]
+			} else {
+				body = content
+			}
+
+			if !strings.Contains(body, tt.want) {
+				t.Errorf("article body missing expected content.\n  want: %q\n  body: %q", tt.want, body)
+			}
+		})
+	}
+}
+
+// TestWikiUpdateContentEscaped tests --content with escape sequences in update
+func TestWikiUpdateContentEscaped(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create initial article
+	_, err := runWiki("create", "esc-update-test", "--content", "initial")
+	if err != nil {
+		t.Fatalf("setup create failed: %v", err)
+	}
+
+	// Update with escaped content
+	_, err = runWiki("update", "esc-update-test", "--content", "line1\\nline2\\nline3")
+	if err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	content := readArticle(t, "esc-update-test")
+	if !strings.Contains(content, "line1\nline2\nline3") {
+		t.Errorf("update content not unescaped. Got: %q", content)
+	}
+}
+
+// TestWikiAppendContentEscaped tests --content with escape sequences in append
+func TestWikiAppendContentEscaped(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create initial article
+	_, err := runWiki("create", "esc-append-test", "--content", "base")
+	if err != nil {
+		t.Fatalf("setup create failed: %v", err)
+	}
+
+	// Append with escaped content
+	_, err = runWiki("append", "esc-append-test", "--content", "appended\\ncontent")
+	if err != nil {
+		t.Fatalf("append failed: %v", err)
+	}
+
+	content := readArticle(t, "esc-append-test")
+	if !strings.Contains(content, "appended\ncontent") {
+		t.Errorf("append content not unescaped. Got: %q", content)
+	}
+}
+
+// TestWikiCreateContentInvalidEsc tests invalid escape sequences return error
+func TestWikiCreateContentInvalidEsc(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "trailing backslash", content: "bad\\"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := runWiki("create", "test-"+tt.name, "--content", tt.content)
+			if err == nil {
+				t.Fatalf("expected error for invalid escape, got: %s", output)
+			}
+			if !strings.Contains(output, "invalid escape sequence") {
+				t.Errorf("error should mention invalid escape sequence, got: %s", output)
+			}
+			if !strings.Contains(output, "--stdin") {
+				t.Errorf("error should suggest --stdin, got: %s", output)
+			}
+		})
+	}
+}
+
+// TestWikiUpdateContentInvalidEsc tests update with invalid escape returns error
+func TestWikiUpdateContentInvalidEsc(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create initial article
+	_, err := runWiki("create", "esc-upd-inv", "--content", "initial")
+	if err != nil {
+		t.Fatalf("setup create failed: %v", err)
+	}
+
+	output, err := runWiki("update", "esc-upd-inv", "--content", "bad\\")
+	if err == nil {
+		t.Fatalf("expected error for invalid escape, got: %s", output)
+	}
+	if !strings.Contains(output, "invalid escape sequence") {
+		t.Errorf("error should mention invalid escape sequence, got: %s", output)
+	}
+	if !strings.Contains(output, "--stdin") {
+		t.Errorf("error should suggest --stdin, got: %s", output)
+	}
+}
+
+// TestWikiAppendContentInvalidEsc tests append with invalid escape returns error
+func TestWikiAppendContentInvalidEsc(t *testing.T) {
+	os.RemoveAll(testWikiData)
+	defer os.RemoveAll(testWikiData)
+
+	// Create initial article
+	_, err := runWiki("create", "esc-app-inv", "--content", "initial")
+	if err != nil {
+		t.Fatalf("setup create failed: %v", err)
+	}
+
+	output, err := runWiki("append", "esc-app-inv", "--content", "bad\\")
+	if err == nil {
+		t.Fatalf("expected error for invalid escape, got: %s", output)
+	}
+	if !strings.Contains(output, "invalid escape sequence") {
+		t.Errorf("error should mention invalid escape sequence, got: %s", output)
+	}
+	if !strings.Contains(output, "--stdin") {
+		t.Errorf("error should suggest --stdin, got: %s", output)
+	}
+}

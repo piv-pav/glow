@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -64,4 +65,19 @@ func splitLines(s string) []string {
 
 func joinLines(lines []string) string {
 	return strings.Join(lines, "\n")
+}
+
+// unescapeContent interprets escape sequences in content strings using Go stdlib.
+// Handles \n, \t, \\, \r, \", \xNN, \uNNNN, \UNNNNNNNN, \NNN (octal).
+// Raw newlines in content (already interpreted by shell/Go) are preserved.
+// Returns error for invalid escape sequences (e.g. trailing backslash, \').
+func unescapeContent(s string) (string, error) {
+	// strconv.Unquote rejects raw newlines in quoted strings.
+	// Escape them first so both raw newlines and escape sequences get interpreted.
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	unquoted, err := strconv.Unquote("\"" + s + "\"")
+	if err != nil {
+		return "", fmt.Errorf("invalid escape sequence in --content: %w\nUse --stdin instead for content with special characters", err)
+	}
+	return unquoted, nil
 }

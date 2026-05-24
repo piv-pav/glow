@@ -78,7 +78,11 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 			}
 			newContent = string(data)
 		} else if updateContent != "" {
-			newContent = updateContent
+			var err error
+			newContent, err = unescapeContent(updateContent)
+			if err != nil {
+				return err
+			}
 		} else {
 			var err error
 			newContent, err = openEditor(initialContent)

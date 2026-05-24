@@ -47,7 +47,11 @@ func runAppend(cmd *cobra.Command, args []string) error {
 		}
 		content = string(data)
 	} else {
-		content = appendContent
+		var err error
+		content, err = unescapeContent(appendContent)
+		if err != nil {
+			return err
+		}
 	}
 
 	store := storage.New(wikiName)
