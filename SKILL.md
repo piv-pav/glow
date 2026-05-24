@@ -120,7 +120,7 @@ wiki delete "article-name" --section "Section Heading"
 
 ## CLI Tips
 
-- **`--stdin`**: Use `--stdin` flag to pipe content into `glow create`, `glow update`, or `glow append`. Example: `echo "content" | wiki append "name" --stdin`
+- **`--stdin`**: Use `--stdin` flag to pipe content into `glow create`, `glow update`, or `glow append`. Example: `echo "content" | glow append "name" --stdin`
 - **`--content`**: Use `--content` flag for inline content on `glow create`, `glow update`, or `glow append`. Example: `glow append "name" --content "text"`
 - **`glow meta get`**: Get a metadata field value. Example: `glow meta get "name" tags`
 - **`--` separator**: Use `--` before article names that could be parsed as flags (e.g., starting with `-`).
@@ -144,47 +144,47 @@ wiki delete "article-name" --section "Section Heading"
 
 ```bash
 # 1. Search for existing article
-wiki search "logstash"
+glow search "logstash"
 
 # 2. List sections to find what to update
-wiki read "projects/eventhub/logstash-decommission" --sections
+glow read "projects/eventhub/logstash-decommission" --sections
 
 # 3. Read specific section
-wiki read "projects/eventhub/logstash-decommission" --section "Current State"
+glow read "projects/eventhub/logstash-decommission" --section "Current State"
 
 # 4. Append new information (to end or specific section)
 echo "## Update 2026-05-19
 
-New development: ..." | wiki append "projects/eventhub/logstash-decommission" --stdin
+New development: ..." | glow append "projects/eventhub/logstash-decommission" --stdin
 
 # OR append to specific section
-echo "- New blocker: ..." | wiki append "projects/eventhub/logstash-decommission" --section "Build Blockers" --stdin
+echo "- New blocker: ..." | glow append "projects/eventhub/logstash-decommission" --section "Build Blockers" --stdin
 
 # OR update entire section if replacing content
-wiki update "projects/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
+glow update "projects/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
 ```
 
 ### Creating New Articles
 
 ```bash
 # Create article with content (no editor)
-wiki create "projects/eventhub/new-topic" \
+glow create "projects/eventhub/new-topic" \
   --content "# New Topic\n\nContent here..." \
   --meta "tags:kafka" \
   --meta "project:eventhub"
 
 # Or use stdin
-echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
+echo "# Title\n\nContent" | glow create "article-name" --stdin --meta "tags:value"
 ```
 
 ## Index Management
 
 ```bash
 # Verify index health
-wiki wiki-verify
+glow wiki-verify
 
 # Rebuild if corrupted
-wiki wiki-rebuild
+glow wiki-rebuild
 ```
 
 ---

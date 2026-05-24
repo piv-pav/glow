@@ -35,11 +35,39 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 	// Build Bleve query
 	var queries []query.Query
 
-	// Add text search if present
+	// Add text search if present - search across content and metadata fields
 	if textQuery != "" {
+		textQueries := make([]query.Query, 0)
+
+		// Search metadata fields first (higher boost = higher priority)
+		// Tags get highest priority, then project/path, then content
+		for _, field := range []string{"tags"} {
+			fieldQuery := bleve.NewMatchQuery(textQuery)
+			fieldQuery.SetField(field)
+			fieldQuery.SetBoost(2.0)
+			textQueries = append(textQueries, fieldQuery)
+		}
+
+		for _, field := range []string{"project", "path"} {
+			fieldQuery := bleve.NewMatchQuery(textQuery)
+			fieldQuery.SetField(field)
+			fieldQuery.SetBoost(1.5)
+			textQueries = append(textQueries, fieldQuery)
+		}
+
+		// Search content field (lowest priority)
 		contentQuery := bleve.NewMatchQuery(textQuery)
 		contentQuery.SetField("content")
-		queries = append(queries, contentQuery)
+		contentQuery.SetBoost(1.0)
+		textQueries = append(textQueries, contentQuery)
+
+		// Combine text queries with OR (any field can match)
+		if len(textQueries) == 1 {
+			queries = append(queries, textQueries[0])
+		} else {
+			textDisjunction := bleve.NewDisjunctionQuery(textQueries...)
+			queries = append(queries, textDisjunction)
+		}
 	}
 
 	// Add filter queries
