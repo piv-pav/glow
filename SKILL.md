@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: Personal knowledge base using GLOW wiki. Store and retrieve learnings, project context, CBA work, engineering practices, preferences. Use to remember decisions, patterns, configurations across sessions.
+description: Personal knowledge base using GLOW wiki. Store and retrieve learnings, project context, engineering practices, preferences. Use to remember decisions, patterns, configurations across sessions.
 ---
 
 # Knowledge Skill
@@ -10,7 +10,7 @@ Wiki name: `default`
 
 ## Structure
 
-- `cba/{team_name}/` - Team work, configs, decisions
+- `projects/{project_name}/` - Project work, configs, decisions
 - `projects/{project_name}` - Project tracking  
 - `engineering/` - Engineering patterns
 - `preferences/` - User workflows
@@ -27,7 +27,7 @@ wiki search "search term"
 
 # Search with filters
 wiki search "kafka tag:eventhub"
-wiki search "path:cba/eventhub/ architecture"
+wiki search "path:projects/eventhub/ architecture"
 wiki search "project:eventhub terraform"
 
 # More results
@@ -41,13 +41,13 @@ wiki search "topic" -l 20
 wiki list
 
 # Read specific article - ALWAYS use wiki read command
-wiki read "cba/eventhub/team-context"
+wiki read "projects/eventhub/team-context"
 
 # List sections in article
-wiki read "cba/eventhub/team-context" --sections
+wiki read "projects/eventhub/team-context" --sections
 
 # Read specific section only
-wiki read "cba/eventhub/team-context" --section "Current State"
+wiki read "projects/eventhub/team-context" --section "Current State"
 
 # Include frontmatter
 wiki read "article-name" --raw
@@ -57,7 +57,7 @@ wiki read "article-name" --raw
 
 ```bash
 # Create new article (LLM-friendly, no editor)
-wiki create "cba/eventhub/new-topic" --content "# Title\n\nContent here" --meta "tags:kafka" --meta "project:eventhub"
+wiki create "projects/eventhub/new-topic" --content "# Title\n\nContent here" --meta "tags:kafka" --meta "project:eventhub"
 
 # Or from stdin
 echo "# Title\n\nContent" | wiki create "article-name" --stdin --meta "tags:value"
@@ -127,7 +127,7 @@ wiki delete "article-name" --section "Section Heading"
 
 ## Behavior Guidelines
 
-**On every user request**: Check if related to projects/team/CBA/engineering/preferences/past work
+**On every user request**: Check if related to projects/team/engineering/preferences/past work
 → If yes: Search knowledge base FIRST before answering
 
 **After learning/solving/being corrected**:
@@ -147,28 +147,28 @@ wiki delete "article-name" --section "Section Heading"
 wiki search "logstash"
 
 # 2. List sections to find what to update
-wiki read "cba/eventhub/logstash-decommission" --sections
+wiki read "projects/eventhub/logstash-decommission" --sections
 
 # 3. Read specific section
-wiki read "cba/eventhub/logstash-decommission" --section "Current State"
+wiki read "projects/eventhub/logstash-decommission" --section "Current State"
 
 # 4. Append new information (to end or specific section)
 echo "## Update 2026-05-19
 
-New development: ..." | wiki append "cba/eventhub/logstash-decommission" --stdin
+New development: ..." | wiki append "projects/eventhub/logstash-decommission" --stdin
 
 # OR append to specific section
-echo "- New blocker: ..." | wiki append "cba/eventhub/logstash-decommission" --section "Build Blockers" --stdin
+echo "- New blocker: ..." | wiki append "projects/eventhub/logstash-decommission" --section "Build Blockers" --stdin
 
 # OR update entire section if replacing content
-wiki update "cba/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
+wiki update "projects/eventhub/logstash-decommission" --section "Current State" --content "Updated state info"
 ```
 
 ### Creating New Articles
 
 ```bash
 # Create article with content (no editor)
-wiki create "cba/eventhub/new-topic" \
+wiki create "projects/eventhub/new-topic" \
   --content "# New Topic\n\nContent here..." \
   --meta "tags:kafka" \
   --meta "project:eventhub"

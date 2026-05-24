@@ -43,7 +43,7 @@ glow/
 
 ## Data Layout
 ```
-~/.local/share/glow/           # XDG_DATA_HOME/glow or $WIKI_DATA
+~/.local/share/glow/           # XDG_DATA_HOME/glow or $GLOW_DATA
 ├── wiki/
 │   ├── default/
 │   │   ├── articles/
@@ -154,7 +154,7 @@ wiki create "article-name"  # Creates in default wiki
 ## Technical Implementation
 
 ### Storage
-- **Path resolution**: XDG_DATA_HOME/glow or `$WIKI_DATA` environment variable
+- **Path resolution**: XDG_DATA_HOME/glow or `$GLOW_DATA` environment variable
 - **Wiki path**: `<base>/wiki/<wiki-name>/`
 - **Articles**: `<wiki-path>/articles/**/*.md` (supports nested folders)
 - **Article paths**: Can include folders: `folder/subfolder/article`

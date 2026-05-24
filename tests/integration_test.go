@@ -24,10 +24,10 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// runWiki executes wiki command with WIKI_DATA set to test directory
+// runWiki executes wiki command with GLOW_DATA set to test directory
 func runWiki(args ...string) (string, error) {
 	cmd := exec.Command("glow", args...)
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 
 	output, err := cmd.CombinedOutput()
 	return string(output), err
@@ -111,7 +111,7 @@ func TestWikiCreate(t *testing.T) {
 			input := "# Test Content\n\nThis is test content."
 			args := append(tt.args, "--stdin")
 			cmd := exec.Command("sh", "-c", "echo '"+input+"' | glow "+strings.Join(args, " "))
-			cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+			cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 
 			output, err := cmd.CombinedOutput()
 
@@ -267,7 +267,7 @@ func TestWikiUpdate(t *testing.T) {
 	initialContent := "# Initial\n\nInitial content."
 
 	cmd := exec.Command("sh", "-c", "echo '"+initialContent+"' | glow create "+articleName+" --stdin --meta tags:test")
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to setup test article: %v\nOutput: %s", err, string(output))
 	}
@@ -281,7 +281,7 @@ func TestWikiUpdate(t *testing.T) {
 	// Update using --content flag
 	updatedContent := "# Updated\n\nUpdated content."
 	cmd = exec.Command("glow", "update", articleName, "--content", updatedContent)
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to update article: %v\nOutput: %s", err, string(output))
 	}
@@ -707,7 +707,7 @@ func TestWikiAppendStdin(t *testing.T) {
 	// Append via stdin
 	stdinContent := "Appended via stdin."
 	cmd := exec.Command("sh", "-c", "echo '"+stdinContent+"' | glow append "+articleName+" --stdin")
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -723,7 +723,7 @@ func TestWikiAppendStdin(t *testing.T) {
 	// Append to section via stdin
 	sectionContent := "Appended to section via stdin."
 	cmd = exec.Command("sh", "-c", "echo '"+sectionContent+"' | glow append "+articleName+" --section \"Initial\" --stdin")
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 
 	output, err = cmd.CombinedOutput()
 	if err != nil {
@@ -794,7 +794,7 @@ Content A.
 
 Content B.`
 	cmd := exec.Command("sh", "-c", "echo '"+content+"' | glow create read-test --stdin --meta tags:test")
-	cmd.Env = append(os.Environ(), "WIKI_DATA="+testWikiData)
+	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to create article: %v\nOutput: %s", err, string(output))
 	}

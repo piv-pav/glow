@@ -201,10 +201,10 @@ By default, data is stored in XDG-compliant directories:
 - **Linux**: `~/.local/share/glow/wiki/`
 - **Windows**: `%LOCALAPPDATA%\glow\wiki\`
 
-Override with `WIKI_DATA` environment variable:
+Override with `GLOW_DATA` environment variable:
 
 ```bash
-export WIKI_DATA=/path/to/your/wikis
+export GLOW_DATA=/path/to/your/wikis
 glow list
 ```
 
@@ -307,7 +307,7 @@ just test
 just fmt
 ```
 
-Tests use isolated environment (`WIKI_DATA=/tmp/glow-test-wiki`) and cover:
+Tests use isolated environment (`GLOW_DATA=/tmp/glow-test-wiki`) and cover:
 
 - Create/append/update/delete operations
 - Section-targeted edits

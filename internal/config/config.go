@@ -9,9 +9,9 @@ import (
 )
 
 // GetWikiBasePath returns base path for all wikis
-// Uses WIKI_DATA env var if set, otherwise XDG_DATA_HOME/glow/wiki
+// Uses GLOW_DATA env var if set, otherwise XDG_DATA_HOME/glow/wiki
 func GetWikiBasePath() (string, error) {
-	if customPath := os.Getenv("WIKI_DATA"); customPath != "" {
+	if customPath := os.Getenv("GLOW_DATA"); customPath != "" {
 		return customPath, nil
 	}
 
