@@ -3,6 +3,7 @@ package index
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -14,6 +15,7 @@ import (
 type Index struct {
 	WikiName string
 	index    bleve.Index
+	fields   []string
 }
 
 // New creates or opens an index for a wiki
@@ -41,10 +43,17 @@ func New(wikiName string) (*Index, error) {
 		return nil, fmt.Errorf("failed to open index: %w", err)
 	}
 
-	return &Index{
+	i := &Index{
 		WikiName: wikiName,
 		index:    idx,
-	}, nil
+	}
+
+	// Cache fields for search optimization
+	if fields, err := idx.Fields(); err == nil {
+		i.fields = fields
+	}
+
+	return i, nil
 }
 
 // createIndexMapping creates Bleve index mapping
@@ -68,9 +77,22 @@ func (i *Index) IndexArticle(name string, article *article.Article) error {
 		"content": article.Content,
 	}
 
-	// Add all metadata fields (flattened for search)
-	for key, val := range article.GetAllMetadataForIndex() {
-		doc[key] = val
+	// Add all metadata fields (inline flatten for performance)
+	for key, val := range article.Metadata {
+		switch v := val.(type) {
+		case []interface{}:
+			strs := make([]string, 0, len(v))
+			for _, item := range v {
+				if str, ok := item.(string); ok {
+					strs = append(strs, str)
+				}
+			}
+			doc[key] = strings.Join(strs, " ")
+		case []string:
+			doc[key] = strings.Join(v, " ")
+		default:
+			doc[key] = val
+		}
 	}
 
 	// Ensure path is set
@@ -125,8 +147,22 @@ func (i *Index) Rebuild(articles map[string]*article.Article) error {
 			"content": art.Content,
 		}
 
-		for key, val := range art.GetAllMetadataForIndex() {
-			doc[key] = val
+		// Inline flatten metadata
+		for key, val := range art.Metadata {
+			switch v := val.(type) {
+			case []interface{}:
+				strs := make([]string, 0, len(v))
+				for _, item := range v {
+					if str, ok := item.(string); ok {
+						strs = append(strs, str)
+					}
+				}
+				doc[key] = strings.Join(strs, " ")
+			case []string:
+				doc[key] = strings.Join(v, " ")
+			default:
+				doc[key] = val
+			}
 		}
 
 		if _, ok := doc["path"]; !ok {
@@ -158,32 +194,3 @@ func (i *Index) Rebuild(articles map[string]*article.Article) error {
 	return nil
 }
 
-// Verify checks index health and returns stats
-func (i *Index) Verify() (map[string]interface{}, error) {
-	stats := make(map[string]interface{})
-
-	// Get document count
-	docCount, err := i.index.DocCount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get document count: %w", err)
-	}
-
-	stats["document_count"] = docCount
-
-	// Try a basic search to verify functionality
-	query := bleve.NewMatchAllQuery()
-	searchRequest := bleve.NewSearchRequest(query)
-	searchRequest.Size = 1
-
-	searchResult, err := i.index.Search(searchRequest)
-	if err != nil {
-		stats["searchable"] = false
-		stats["error"] = err.Error()
-		return stats, fmt.Errorf("index search failed: %w", err)
-	}
-
-	stats["searchable"] = true
-	stats["total_hits"] = searchResult.Total
-
-	return stats, nil
-}

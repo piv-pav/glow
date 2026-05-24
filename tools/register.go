@@ -14,6 +14,5 @@ func RegisterCommands(root *cobra.Command) {
 	root.AddCommand(updateCmd)
 	root.AddCommand(wikiCreateCmd)
 	root.AddCommand(wikiListCmd)
-	root.AddCommand(wikiVerifyCmd)
 	root.AddCommand(wikiRebuildCmd)
 }

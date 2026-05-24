@@ -37,29 +37,10 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art, err := store.Read(name)
 	if err != nil {
 		return err
-	}
-
-	var initialContent string
-	if updateSection != "" {
-		section := art.FindSection(updateSection)
-		if section == nil {
-			return fmt.Errorf("section not found: %s", updateSection)
-		}
-		lines := splitLines(section.Content)
-		if len(lines) > 1 {
-			initialContent = joinLines(lines[1:])
-		}
-	} else {
-		initialContent = art.Content
 	}
 
 	var newContent string
@@ -84,11 +65,8 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 				return err
 			}
 		} else {
-			var err error
-			newContent, err = openEditor(initialContent)
-			if err != nil {
-				return fmt.Errorf("failed to open editor: %w", err)
-			}
+			// updateSection with no content/stdin = error already caught above
+			return fmt.Errorf("--section requires --content or --stdin")
 		}
 
 		if updateSection != "" {
@@ -125,14 +103,14 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.UpdateArticle(name, art); err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
-
-	fmt.Printf("Updated article: %s\n", name)
-	if updateSection != "" {
-		fmt.Printf("Section: %s\n", updateSection)
-	}
-
-	return nil
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.UpdateArticle(name, art); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
+		fmt.Printf("Updated article: %s\n", name)
+		if updateSection != "" {
+			fmt.Printf("Section: %s\n", updateSection)
+		}
+		return nil
+	})
 }

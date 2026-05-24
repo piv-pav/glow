@@ -36,12 +36,6 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	query := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
-
 	filters := make(map[string]string)
 	for _, filter := range searchFilters {
 		key, value, ok := parseFilter(filter)
@@ -51,42 +45,44 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		filters[key] = value
 	}
 
-	results, err := idx.Search(query, filters, searchLimit)
-	if err != nil {
-		return err
-	}
+	return withIndex(wikiName, func(idx *index.Index) error {
+		results, err := idx.Search(query, filters, searchLimit)
+		if err != nil {
+			return err
+		}
 
-	if len(results) == 0 {
-		fmt.Println("No results found")
+		if len(results) == 0 {
+			fmt.Println("No results found")
+			return nil
+		}
+
+		fmt.Printf("Found %d results:\n\n", len(results))
+		for i, result := range results {
+			fmt.Printf("%d. %s (score: %.2f)\n", i+1, result.Name, result.Score)
+
+			if result.Snippet != "" {
+				fmt.Printf("   %s\n", result.Snippet)
+			}
+
+			var metaParts []string
+
+			if tags, ok := result.Metadata["tags"].(string); ok && tags != "" {
+				metaParts = append(metaParts, "tags: "+tags)
+			}
+
+			if project, ok := result.Metadata["project"].(string); ok && project != "" {
+				metaParts = append(metaParts, "project: "+project)
+			}
+
+			if len(metaParts) > 0 {
+				fmt.Printf("   [%s]\n", strings.Join(metaParts, " | "))
+			}
+
+			fmt.Println()
+		}
+
 		return nil
-	}
-
-	fmt.Printf("Found %d results:\n\n", len(results))
-	for i, result := range results {
-		fmt.Printf("%d. %s (score: %.2f)\n", i+1, result.Name, result.Score)
-
-		if result.Snippet != "" {
-			fmt.Printf("   %s\n", result.Snippet)
-		}
-
-		var metaParts []string
-
-		if tags, ok := result.Metadata["tags"].(string); ok && tags != "" {
-			metaParts = append(metaParts, "tags: "+tags)
-		}
-
-		if project, ok := result.Metadata["project"].(string); ok && project != "" {
-			metaParts = append(metaParts, "project: "+project)
-		}
-
-		if len(metaParts) > 0 {
-			fmt.Printf("   [%s]\n", strings.Join(metaParts, " | "))
-		}
-
-		fmt.Println()
-	}
-
-	return nil
+	})
 }
 
 func parseFilter(filter string) (string, string, bool) {

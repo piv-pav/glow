@@ -26,14 +26,6 @@ var wikiListCmd = &cobra.Command{
 	RunE:  runWikiList,
 }
 
-var wikiVerifyCmd = &cobra.Command{
-	Use:   "verify",
-	Short: "Verify wiki index health",
-	Long:  `Verify the health of the wiki index and display statistics.`,
-	Args:  cobra.NoArgs,
-	RunE:  runWikiVerify,
-}
-
 var wikiRebuildCmd = &cobra.Command{
 	Use:   "rebuild",
 	Short: "Rebuild wiki index",
@@ -49,18 +41,12 @@ func runWikiCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	idx, err := index.New(name)
-	if err != nil {
-		return fmt.Errorf("failed to initialize index: %w", err)
-	}
-	defer idx.Close()
-
-	fmt.Printf("Created wiki: %s\n", name)
-
-	wikiPath, _ := config.GetWikiPath(name)
-	fmt.Printf("Location: %s\n", wikiPath)
-
-	return nil
+	return withIndex(name, func(idx *index.Index) error {
+		fmt.Printf("Created wiki: %s\n", name)
+		wikiPath, _ := config.GetWikiPath(name)
+		fmt.Printf("Location: %s\n", wikiPath)
+		return nil
+	})
 }
 
 func runWikiList(cmd *cobra.Command, args []string) error {
@@ -80,41 +66,6 @@ func runWikiList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %s\n", wiki)
 		fmt.Printf("    %s\n", wikiPath)
 	}
-
-	return nil
-}
-
-func runWikiVerify(cmd *cobra.Command, args []string) error {
-	wikiName := wikiNameFrom(cmd)
-
-	exists, err := config.WikiExists(wikiName)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("wiki does not exist: %s", wikiName)
-	}
-
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
-
-	stats, err := idx.Verify()
-	if err != nil {
-		fmt.Printf("Index verification FAILED for wiki '%s':\n", wikiName)
-		fmt.Printf("  Error: %v\n", err)
-		if statsData, ok := stats["error"]; ok {
-			fmt.Printf("  Details: %v\n", statsData)
-		}
-		return err
-	}
-
-	fmt.Printf("Index verification OK for wiki '%s':\n", wikiName)
-	fmt.Printf("  Document count: %v\n", stats["document_count"])
-	fmt.Printf("  Searchable: %v\n", stats["searchable"])
-	fmt.Printf("  Total hits (test): %v\n", stats["total_hits"])
 
 	return nil
 }
@@ -148,18 +99,13 @@ func runWikiRebuild(cmd *cobra.Command, args []string) error {
 		articles[name] = art
 	}
 
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.Rebuild(articles); err != nil {
+			return fmt.Errorf("failed to rebuild index: %w", err)
+		}
 
-	if err := idx.Rebuild(articles); err != nil {
-		return fmt.Errorf("failed to rebuild index: %w", err)
-	}
-
-	fmt.Printf("Successfully rebuilt index for wiki '%s'\n", wikiName)
-	fmt.Printf("Indexed %d articles\n", len(articles))
-
-	return nil
+		fmt.Printf("Successfully rebuilt index for wiki '%s'\n", wikiName)
+		fmt.Printf("Indexed %d articles\n", len(articles))
+		return nil
+	})
 }

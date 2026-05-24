@@ -128,7 +128,6 @@ glow delete "article-name" --section "Section Heading"
 - **`--stdin`**: Use `--stdin` flag to pipe content into `glow create`, `glow update`, or `glow append`. Example: `echo "content" | glow append "name" --stdin`
 - **`--content`**: Use `--content` flag for inline content on `glow create`, `glow update`, or `glow append`. Example: `glow append "name" --content "text"`
 - **`glow meta get`**: Get a metadata field value. Example: `glow meta get "name" tags`
-- **`--` separator**: Use `--` before article names that could be parsed as flags (e.g., starting with `-`).
 
 ## Behavior Guidelines
 

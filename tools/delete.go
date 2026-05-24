@@ -29,11 +29,6 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	if deleteSection != "" {
 		art, err := store.Read(name)
@@ -49,22 +44,24 @@ func runDelete(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		if err := idx.UpdateArticle(name, art); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
-		}
-
-		fmt.Printf("Deleted section: %s from article: %s\n", deleteSection, name)
-		return nil
+		return withIndex(wikiName, func(idx *index.Index) error {
+			if err := idx.UpdateArticle(name, art); err != nil {
+				return fmt.Errorf("failed to update index: %w", err)
+			}
+			fmt.Printf("Deleted section: %s from article: %s\n", deleteSection, name)
+			return nil
+		})
 	}
 
 	if err := store.Delete(name); err != nil {
 		return err
 	}
 
-	if err := idx.DeleteArticle(name); err != nil {
-		return fmt.Errorf("failed to remove from index: %w", err)
-	}
-
-	fmt.Printf("Deleted article: %s\n", name)
-	return nil
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.DeleteArticle(name); err != nil {
+			return fmt.Errorf("failed to remove from index: %w", err)
+		}
+		fmt.Printf("Deleted article: %s\n", name)
+		return nil
+	})
 }

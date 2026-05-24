@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-25
+
+### Changed
+- **Performance**: Index fields cached at creation time, reused in search (eliminates repeated field enumeration)
+- **Performance**: Metadata flattening inlined in index operations (removes redundant map allocations)
+- **Performance**: `unescapeContent()` fast path for strings without escape sequences
+- **Code quality**: Introduced `withIndex()` helper pattern across all commands (eliminates boilerplate, guarantees cleanup)
+- **Test organization**: Split 1159-line integration test into 5 focused files (helpers, article, metadata, search, wiki)
+
+### Removed
+- `--editor` flag and interactive editor support (never needed in LLM/automation context)
+- `verify` command (unnecessary index health check)
+- `Index.Verify()` method
+- `Article.GetAllMetadataForIndex()` method (logic inlined)
+
 ## [0.4.5] - 2026-05-24
 
 ### Fixed

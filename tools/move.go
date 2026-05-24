@@ -22,11 +22,6 @@ func runMove(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art, err := store.Read(oldName)
 	if err != nil {
@@ -37,19 +32,21 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.DeleteArticle(oldName); err != nil {
-		return fmt.Errorf("failed to remove old entry from index: %w", err)
-	}
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.DeleteArticle(oldName); err != nil {
+			return fmt.Errorf("failed to remove old entry from index: %w", err)
+		}
 
-	art, err = store.Read(newName)
-	if err != nil {
-		return err
-	}
+		art, err = store.Read(newName)
+		if err != nil {
+			return err
+		}
 
-	if err := idx.IndexArticle(newName, art); err != nil {
-		return fmt.Errorf("failed to index article with new name: %w", err)
-	}
+		if err := idx.IndexArticle(newName, art); err != nil {
+			return fmt.Errorf("failed to index article with new name: %w", err)
+		}
 
-	fmt.Printf("Moved article: %s -> %s\n", oldName, newName)
-	return nil
+		fmt.Printf("Moved article: %s -> %s\n", oldName, newName)
+		return nil
+	})
 }

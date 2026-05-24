@@ -58,11 +58,6 @@ func runMetaSet(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art, err := store.Read(name)
 	if err != nil {
@@ -75,12 +70,13 @@ func runMetaSet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.UpdateArticle(name, art); err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
-
-	fmt.Printf("Set %s.%s = %s\n", name, key, value)
-	return nil
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.UpdateArticle(name, art); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
+		fmt.Printf("Set %s.%s = %s\n", name, key, value)
+		return nil
+	})
 }
 
 func runMetaAdd(cmd *cobra.Command, args []string) error {
@@ -90,11 +86,6 @@ func runMetaAdd(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art, err := store.Read(name)
 	if err != nil {
@@ -109,12 +100,13 @@ func runMetaAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.UpdateArticle(name, art); err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
-
-	fmt.Printf("Added to %s.%s: %s\n", name, key, strings.Join(values, ", "))
-	return nil
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.UpdateArticle(name, art); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
+		fmt.Printf("Added to %s.%s: %s\n", name, key, strings.Join(values, ", "))
+		return nil
+	})
 }
 
 func runMetaDelete(cmd *cobra.Command, args []string) error {
@@ -127,11 +119,6 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art, err := store.Read(name)
 	if err != nil {
@@ -146,17 +133,18 @@ func runMetaDelete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.UpdateArticle(name, art); err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.UpdateArticle(name, art); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
 
-	if value == "" {
-		fmt.Printf("Deleted %s.%s\n", name, key)
-	} else {
-		fmt.Printf("Removed from %s.%s: %s\n", name, key, value)
-	}
-
-	return nil
+		if value == "" {
+			fmt.Printf("Deleted %s.%s\n", name, key)
+		} else {
+			fmt.Printf("Removed from %s.%s: %s\n", name, key, value)
+		}
+		return nil
+	})
 }
 
 func runMetaGet(cmd *cobra.Command, args []string) error {

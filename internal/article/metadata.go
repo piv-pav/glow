@@ -2,7 +2,6 @@ package article
 
 import (
 	"fmt"
-	"strings"
 )
 
 // SetMetadata sets a scalar metadata field (overwrites if exists)
@@ -139,29 +138,4 @@ func (a *Article) GetMetadataArray(key string) ([]string, bool) {
 		}
 	}
 	return nil, false
-}
-
-// GetAllMetadataForIndex returns flattened metadata for indexing
-func (a *Article) GetAllMetadataForIndex() map[string]interface{} {
-	indexed := make(map[string]interface{})
-	
-	for key, val := range a.Metadata {
-		switch v := val.(type) {
-		case []interface{}:
-			// Flatten arrays to space-separated strings for text search
-			strs := make([]string, 0)
-			for _, item := range v {
-				if str, ok := item.(string); ok {
-					strs = append(strs, str)
-				}
-			}
-			indexed[key] = strings.Join(strs, " ")
-		case []string:
-			indexed[key] = strings.Join(v, " ")
-		default:
-			indexed[key] = val
-		}
-	}
-	
-	return indexed
 }

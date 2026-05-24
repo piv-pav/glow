@@ -15,7 +15,6 @@ var (
 	createMeta    []string
 	createContent string
 	createStdin   bool
-	createEditor  bool
 )
 
 var createCmd = &cobra.Command{
@@ -25,8 +24,8 @@ var createCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE:  runCreate,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !createStdin && createContent == "" && !createEditor {
-			return fmt.Errorf("must specify one of: --content, --stdin, or --editor")
+		if !createStdin && createContent == "" {
+			return fmt.Errorf("must specify one of: --content or --stdin")
 		}
 		return nil
 	},
@@ -36,7 +35,6 @@ func init() {
 	createCmd.Flags().StringArrayVar(&createMeta, "meta", []string{}, "Metadata in key:value format (can be repeated)")
 	createCmd.Flags().StringVar(&createContent, "content", "", "Article content")
 	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin")
-	createCmd.Flags().BoolVar(&createEditor, "editor", false, "Open editor for content")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -44,11 +42,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
 
 	store := storage.New(wikiName)
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
 
 	art := article.New("")
 
@@ -87,12 +80,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-	} else if createEditor {
-		var err error
-		content, err = openEditor("")
-		if err != nil {
-			return fmt.Errorf("failed to open editor: %w", err)
-		}
 	}
 	art.Content = content
 
@@ -100,10 +87,11 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := idx.IndexArticle(name, art); err != nil {
-		return fmt.Errorf("failed to index article: %w", err)
-	}
-
-	fmt.Printf("Created article: %s\n", name)
-	return nil
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.IndexArticle(name, art); err != nil {
+			return fmt.Errorf("failed to index article: %w", err)
+		}
+		fmt.Printf("Created article: %s\n", name)
+		return nil
+	})
 }

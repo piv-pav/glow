@@ -2,10 +2,10 @@ package tools
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
+	"git.netra.pivpav.com/public/glow/internal/index"
 	"github.com/spf13/cobra"
 )
 
@@ -14,49 +14,14 @@ func wikiNameFrom(cmd *cobra.Command) string {
 	return cmd.Flag("wiki").Value.String()
 }
 
-// openEditor opens system editor for content input.
-func openEditor(initialContent string) (string, error) {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
-
-	tmpFile, err := os.CreateTemp("", "wiki-*.md")
+// withIndex opens index, executes function, guarantees cleanup.
+func withIndex(wikiName string, fn func(*index.Index) error) error {
+	idx, err := index.New(wikiName)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("failed to open index: %w", err)
 	}
-	defer os.Remove(tmpFile.Name())
-
-	if initialContent != "" {
-		if _, err := tmpFile.WriteString(initialContent); err != nil {
-			return "", err
-		}
-	}
-	tmpFile.Close()
-
-	cmd := os.Getenv("SHELL")
-	if cmd == "" {
-		cmd = "/bin/sh"
-	}
-
-	editorCmd := fmt.Sprintf("%s %s", editor, tmpFile.Name())
-	proc, err := os.StartProcess(cmd, []string{cmd, "-c", editorCmd}, &os.ProcAttr{
-		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-	})
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := proc.Wait(); err != nil {
-		return "", err
-	}
-
-	content, err := os.ReadFile(tmpFile.Name())
-	if err != nil {
-		return "", err
-	}
-
-	return string(content), nil
+	defer idx.Close()
+	return fn(idx)
 }
 
 func splitLines(s string) []string {
@@ -72,6 +37,11 @@ func joinLines(lines []string) string {
 // Raw newlines in content (already interpreted by shell/Go) are preserved.
 // Returns error for invalid escape sequences (e.g. trailing backslash, \').
 func unescapeContent(s string) (string, error) {
+	// Fast path: no escapes
+	if !strings.Contains(s, "\\") {
+		return s, nil
+	}
+	
 	// strconv.Unquote rejects raw newlines in quoted strings.
 	// Escape them first so both raw newlines and escape sequences get interpreted.
 	s = strings.ReplaceAll(s, "\n", "\\n")

@@ -37,13 +37,19 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 
 	// Add text search if present — search content + all metadata fields
 	if textQuery != "" {
-		allFields, err := i.index.Fields()
-		if err != nil {
-			return nil, fmt.Errorf("failed to list index fields: %w", err)
-		}
-
 		var textQueries []query.Query
-		for _, field := range allFields {
+		
+		// Use cached fields if available, otherwise enumerate
+		fields := i.fields
+		if len(fields) == 0 {
+			var err error
+			fields, err = i.index.Fields()
+			if err != nil {
+				return nil, fmt.Errorf("failed to list index fields: %w", err)
+			}
+		}
+		
+		for _, field := range fields {
 			if field == "_all" || field == "_id" || field == "_type" {
 				continue
 			}
@@ -57,8 +63,10 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 			textQueries = append(textQueries, q)
 		}
 
-		textDisjunction := bleve.NewDisjunctionQuery(textQueries...)
-		queries = append(queries, textDisjunction)
+		if len(textQueries) > 0 {
+			textDisjunction := bleve.NewDisjunctionQuery(textQueries...)
+			queries = append(queries, textDisjunction)
+		}
 	}
 
 	// Add filter queries
