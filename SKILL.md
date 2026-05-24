@@ -12,12 +12,15 @@ Wiki name: `default`
 
 ## Structure
 
-- `projects/{project_name}/` - Project work, configs, decisions
-- `projects/{project_name}` - Project tracking  
-- `engineering/` - Engineering patterns
-- `preferences/` - User workflows
+No fixed structure. AI decides organization based on what's effective for each topic.
 
-- You can extend and change structure if necessary.
+Guidelines (not rules):
+- **Projects** → `projects/{name}/` if it's about a specific project
+- **Engineering patterns** → `engineering/` 
+- **Machine/device info** → `machine/`
+- But AI can create ANY path, folder, or naming scheme it finds effective
+- Cross-link everything with `[[path/to/article]]` wikilinks
+- Tags and project metadata should be added, but structure is freeform
 
 ## Operations
 
