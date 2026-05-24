@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-05-24
+
+### Changed
+- Simplified text search: all metadata fields (including `tags`, custom fields) use same boost 1.5, content stays at 1.0
+- Text search now dynamically discovers all indexed fields via Bleve API — no hardcoded field list
+
 ## [0.4.2] - 2026-05-24
 
 ### Fixed
