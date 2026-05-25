@@ -175,22 +175,40 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	}
 
 	lines := strings.Split(a.Content, "\n")
+	headingRegex := regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
+
+	// Check if newContent starts with the same heading
+	newContentLines := strings.Split(strings.TrimSpace(newContent), "\n")
+	contentStartsWithHeading := false
+	if len(newContentLines) > 0 {
+		if matches := headingRegex.FindStringSubmatch(newContentLines[0]); matches != nil {
+			// Extract heading text from new content
+			newContentHeading := strings.TrimSpace(matches[2])
+			if newContentHeading == heading {
+				contentStartsWithHeading = true
+			}
+		}
+	}
 
 	// Build new content with updated section
 	var newLines []string
 	newLines = append(newLines, lines[:section.Start]...)
 
-	// Add heading line
-	newLines = append(newLines, lines[section.Start])
-
-	// Blank line after heading
-	newLines = append(newLines, "")
+	// Only add existing heading if new content doesn't start with it
+	if !contentStartsWithHeading {
+		// Add heading line
+		newLines = append(newLines, lines[section.Start])
+		// Blank line after heading
+		newLines = append(newLines, "")
+	}
 
 	// Add new content (replacing old section body)
 	newLines = append(newLines, newContent)
 
-	// Blank line before next section
-	newLines = append(newLines, "")
+	// Add blank line before next section if needed
+	if section.End < len(lines) && !strings.HasSuffix(newContent, "\n") {
+		newLines = append(newLines, "")
+	}
 
 	// Skip old section body (lines[section.Start+1 : section.End])
 	// Add rest of document
