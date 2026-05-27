@@ -1,0 +1,111 @@
+package tools
+
+import (
+	"fmt"
+
+	"codeberg.org/pivpav/glow/internal/article"
+	"codeberg.org/pivpav/glow/internal/config"
+	"codeberg.org/pivpav/glow/internal/index"
+	"codeberg.org/pivpav/glow/internal/storage"
+	"github.com/spf13/cobra"
+)
+
+var wikiCreateCmd = &cobra.Command{
+	Use:   "wiki-create [name]",
+	Short: "Create a new wiki",
+	Long:  `Create a new wiki with the specified name. Creates directory structure and initializes index.`,
+	Args:  cobra.ExactArgs(1),
+	RunE:  runWikiCreate,
+}
+
+var wikiListCmd = &cobra.Command{
+	Use:   "wiki-list",
+	Short: "List all wikis",
+	Long:  `List all available wikis.`,
+	Args:  cobra.NoArgs,
+	RunE:  runWikiList,
+}
+
+var wikiRebuildCmd = &cobra.Command{
+	Use:   "rebuild",
+	Short: "Rebuild wiki index",
+	Long:  `Completely rebuild the wiki index from all articles. Use when index is corrupted.`,
+	Args:  cobra.NoArgs,
+	RunE:  runWikiRebuild,
+}
+
+func runWikiCreate(cmd *cobra.Command, args []string) error {
+	name := args[0]
+
+	if err := config.CreateWiki(name); err != nil {
+		return err
+	}
+
+	return withIndex(name, func(idx *index.Index) error {
+		fmt.Printf("Created wiki: %s\n", name)
+		wikiPath, _ := config.GetWikiPath(name)
+		fmt.Printf("Location: %s\n", wikiPath)
+		return nil
+	})
+}
+
+func runWikiList(cmd *cobra.Command, args []string) error {
+	wikis, err := config.ListWikis()
+	if err != nil {
+		return err
+	}
+
+	if len(wikis) == 0 {
+		fmt.Println("No wikis found")
+		return nil
+	}
+
+	fmt.Printf("Available wikis (%d):\n\n", len(wikis))
+	for _, wiki := range wikis {
+		wikiPath, _ := config.GetWikiPath(wiki)
+		fmt.Printf("  %s\n", wiki)
+		fmt.Printf("    %s\n", wikiPath)
+	}
+
+	return nil
+}
+
+func runWikiRebuild(cmd *cobra.Command, args []string) error {
+	wikiName := wikiNameFrom(cmd)
+
+	exists, err := config.WikiExists(wikiName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("wiki does not exist: %s", wikiName)
+	}
+
+	fmt.Printf("Rebuilding index for wiki '%s'...\n", wikiName)
+
+	store := storage.New(wikiName)
+	articleNames, err := store.List()
+	if err != nil {
+		return fmt.Errorf("failed to list articles: %w", err)
+	}
+
+	articles := make(map[string]*article.Article)
+	for _, name := range articleNames {
+		art, err := store.Read(name)
+		if err != nil {
+			fmt.Printf("Warning: failed to read article %s: %v\n", name, err)
+			continue
+		}
+		articles[name] = art
+	}
+
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.Rebuild(articles); err != nil {
+			return fmt.Errorf("failed to rebuild index: %w", err)
+		}
+
+		fmt.Printf("Successfully rebuilt index for wiki '%s'\n", wikiName)
+		fmt.Printf("Indexed %d articles\n", len(articles))
+		return nil
+	})
+}
