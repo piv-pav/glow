@@ -139,11 +139,10 @@ glow search "golang"
 
 # Search with filters
 glow search "indexing tag:go tag:cli"
-glow search "project:glow documentation"
 glow search "path:team/ meeting notes"
 
 # Using explicit filters
-glow search "query" --filter=tag:go --filter=project:glow -l 20
+glow search "query" --filter=tag:go -l 20
 ```
 
 ### Wiki Management
@@ -175,32 +174,20 @@ glow -w work list
 
 ## Article Format
 
-Articles are stored as Markdown files with YAML frontmatter:
+Articles are Markdown files with minimal YAML frontmatter (managed automatically):
 
 ```markdown
 ---
-title: "Article Title"
-tags: [go, cli, wiki]
-aliases: [alt-name, another-name]
-projects: [glow]
-author: "Pavel"
+tags:
+  - go
+  - cli
 created: 2026-05-19T10:30:00Z
 modified: 2026-05-19T10:30:00Z
-path: folder/article
-custom-field: "custom value"
 ---
 
 # Article Content
 
 Your markdown content here...
-
-## Section 1
-
-Content for section 1.
-
-## Section 2
-
-Content for section 2.
 ```
 
 ## Data Storage
@@ -238,30 +225,20 @@ glow list
 
 ## Search Syntax
 
-### Embedded Filters
-
 Filters can be embedded directly in the query:
 
 - `tag:value` - Search by tag
-- `project:value` - Search by project
-- `author:value` - Search by author
 - `path:folder/` - Search in specific folder (prefix match)
-- Any custom metadata field: `fieldname:value`
-
-### Examples
 
 ```bash
 # Find Go CLI articles
 glow search "tag:go tag:cli"
 
-# Find project documentation
-glow search "project:glow architecture"
-
 # Find in specific folder
 glow search "path:team/ retrospective"
 
-# Multiple criteria
-glow search "kubernetes author:Pavel tag:devops"
+# Combine with text
+glow search "kubernetes tag:devops"
 ```
 
 ## Development
