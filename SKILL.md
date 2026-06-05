@@ -23,12 +23,6 @@ description: GLOW wiki operations. Use for ALL glow commands, wiki searches, kno
 4. Use that context in your response
 5. If no relevant context found, proceed normally
 
-## Development Notes
-
-- Tests run against installed binary: `go install . && go test ./...`
-- Use `just install` for build + test + install in one step
-- Wiki article `projects/glow` has architecture details
-
 ## Operations
 
 ### Search
