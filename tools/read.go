@@ -62,9 +62,9 @@ func runRead(cmd *cobra.Command, args []string) error {
 		if readRaw {
 			fmt.Print(section.Content)
 		} else {
-			lines := splitLines(section.Content)
+			lines := strings.Split(section.Content, "\n")
 			if len(lines) > 1 {
-				fmt.Print(joinLines(lines[1:]))
+				fmt.Print(strings.Join(lines[1:], "\n"))
 			}
 		}
 		return nil

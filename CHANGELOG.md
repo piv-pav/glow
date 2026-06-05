@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-06-05
+
+### Breaking Changes
+- **Removed `meta` command**: `glow meta set/add/delete/get` no longer exist.
+- **Removed `--meta` flag**: Use `--tag` and `--untag` instead.
+- **Tags only**: Metadata is now limited to `created`, `modified`, and `tags` fields.
+
+### Added
+- `--tag` flag on `create` and `update`: Add tags (comma-separated or repeated: `--tag go --tag cli`)
+- `--untag` flag on `update`: Remove tags (same syntax as `--tag`)
+- `article.AddTags()`, `article.RemoveTags()`, `article.SetTags()` methods
+
+### Changed
+- `update` can now modify tags without `--content` (e.g., `glow update "x" --tag new --untag old`)
+- Updated tests to cover single, repeated, and comma-separated `--tag`/`--untag` operations
+
+### Refactored
+- Extracted `modifyArticle()` helper for read→modify→update→index pattern
+- Removed `splitLines`/`joinLines` wrappers (inlined in `read.go`)
+- Removed `parseMeta()` helper (no longer needed)
+
 ## [0.6.0] - 2026-06-05
 
 ### Breaking Changes

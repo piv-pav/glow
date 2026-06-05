@@ -9,6 +9,7 @@ import (
 
 	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/index"
+	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,31 @@ func withIndex(wikiName string, fn func(*index.Index) error) error {
 	return fn(idx)
 }
 
+// modifyArticle reads an article, applies a modification, saves, updates index, and prints successMsg.
+func modifyArticle(wikiName, name string, modify func(*article.Article) error, successMsg string) error {
+	store := storage.New(wikiName)
+	art, err := store.Read(name)
+	if err != nil {
+		return err
+	}
+
+	if err := modify(art); err != nil {
+		return err
+	}
+
+	if err := store.Update(name, art); err != nil {
+		return err
+	}
+
+	return withIndex(wikiName, func(idx *index.Index) error {
+		if err := idx.UpdateArticle(name, art); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
+		}
+		fmt.Println(successMsg)
+		return nil
+	})
+}
+
 // readContent returns content from stdin or --content flag (with escape interpretation).
 func readContent(stdin bool, content string) (string, error) {
 	if stdin {
@@ -37,38 +63,6 @@ func readContent(stdin bool, content string) (string, error) {
 		return string(data), nil
 	}
 	return unescapeContent(content)
-}
-
-// parseMeta parses "key:value" metadata strings into an article's metadata.
-func parseMeta(art *article.Article, meta []string) error {
-	for _, m := range meta {
-		parts := strings.SplitN(m, ":", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid metadata format: %s (expected key:value)", m)
-		}
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-		if strings.Contains(value, ",") {
-			values := strings.Split(value, ",")
-			for i := range values {
-				values[i] = strings.TrimSpace(values[i])
-			}
-			if err := art.AddMetadata(key, values...); err != nil {
-				return err
-			}
-		} else {
-			art.SetMetadata(key, value)
-		}
-	}
-	return nil
-}
-
-func splitLines(s string) []string {
-	return strings.Split(s, "\n")
-}
-
-func joinLines(lines []string) string {
-	return strings.Join(lines, "\n")
 }
 
 // unescapeContent interprets escape sequences in content strings using Go stdlib.

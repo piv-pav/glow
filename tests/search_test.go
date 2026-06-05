@@ -144,7 +144,7 @@ Content A.
 ## Section B
 
 Content B.`
-	if output, err := runWiki("create", "read-test", "--content", content, "--meta", "tags:test"); err != nil {
+	if output, err := runWiki("create", "read-test", "--content", content, "--tag", "test"); err != nil {
 		t.Fatalf("Failed to create article: %v\nOutput: %s", err, output)
 	}
 

@@ -8,7 +8,11 @@ import (
 )
 
 func TestWikiCreate(t *testing.T) {
-	t.Cleanup(func() { runWiki("delete", "test-create") })
+	t.Cleanup(func() {
+		runWiki("delete", "test-create")
+		runWiki("delete", "test-tags")
+		runWiki("delete", "test-comma-tags")
+	})
 
 	tests := []struct {
 		name    string
@@ -31,15 +35,22 @@ func TestWikiCreate(t *testing.T) {
 			},
 		},
 		{
-			name: "create with metadata",
-			args: []string{"create", "test-meta", "--content", "Test", "--meta", "project:glow", "--meta", "tags:go,cli"},
+			name: "create with tags",
+			args: []string{"create", "test-tags", "--content", "Test", "--tag", "go", "--tag", "cli"},
 			check: func(t *testing.T, output string) {
-				content := readArticle(t, "test-meta")
-				if !strings.Contains(content, "project: glow") {
-					t.Errorf("Expected project metadata")
+				content := readArticle(t, "test-tags")
+				if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
+					t.Errorf("Expected tags in metadata")
 				}
-				if !strings.Contains(content, "- go") && !strings.Contains(content, "tags: go") {
-					t.Errorf("Expected tags metadata")
+			},
+		},
+		{
+			name: "create with comma-separated tags",
+			args: []string{"create", "test-comma-tags", "--content", "Test", "--tag", "go,cli"},
+			check: func(t *testing.T, output string) {
+				content := readArticle(t, "test-comma-tags")
+				if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
+					t.Errorf("Expected both tags in metadata")
 				}
 			},
 		},
@@ -173,28 +184,98 @@ func TestWikiUpdate(t *testing.T) {
 	}
 }
 
-func TestWikiUpdateMeta(t *testing.T) {
-	_, err := runWiki("create", "test-update-meta", "--content", "Test", "--meta", "version:1")
+func TestWikiUpdateTags(t *testing.T) {
+	_, err := runWiki("create", "test-update-tags", "--content", "Test", "--tag", "v1")
 	if err != nil {
 		t.Fatalf("Setup failed: %v", err)
 	}
-	t.Cleanup(func() { runWiki("delete", "test-update-meta") })
+	t.Cleanup(func() { runWiki("delete", "test-update-tags") })
 
-	_, err = runWiki("meta", "set", "test-update-meta", "version", "2")
+	// Add tags
+	_, err = runWiki("update", "test-update-tags", "--tag", "v2", "--tag", "ready")
 	if err != nil {
-		t.Fatalf("Meta set version failed: %v", err)
-	}
-	_, err = runWiki("meta", "set", "test-update-meta", "status", "ready")
-	if err != nil {
-		t.Fatalf("Meta set status failed: %v", err)
+		t.Fatalf("Add tags failed: %v", err)
 	}
 
-	content := readArticle(t, "test-update-meta")
-	if !strings.Contains(content, "version: 2") && !strings.Contains(content, "version: \"2\"") {
-		t.Error("Version metadata not updated")
+	content := readArticle(t, "test-update-tags")
+	if !strings.Contains(content, "v1") {
+		t.Error("Original tag v1 missing")
 	}
-	if !strings.Contains(content, "status: ready") {
-		t.Error("Status metadata not added")
+	if !strings.Contains(content, "v2") {
+		t.Error("Tag v2 not added")
+	}
+	if !strings.Contains(content, "ready") {
+		t.Error("Tag ready not added")
+	}
+
+	// Remove single tag
+	_, err = runWiki("update", "test-update-tags", "--untag", "v1")
+	if err != nil {
+		t.Fatalf("Remove tag failed: %v", err)
+	}
+
+	content = readArticle(t, "test-update-tags")
+	if strings.Contains(content, "v1") {
+		t.Error("Tag v1 should be removed")
+	}
+	if !strings.Contains(content, "v2") {
+		t.Error("Tag v2 should remain")
+	}
+
+	// Add more tags for multi-untag test
+	_, err = runWiki("update", "test-update-tags", "--tag", "a", "--tag", "b", "--tag", "c")
+	if err != nil {
+		t.Fatalf("Add tags for multi-untag failed: %v", err)
+	}
+
+	// Remove multiple tags with repeated flags
+	_, err = runWiki("update", "test-update-tags", "--untag", "a", "--untag", "b")
+	if err != nil {
+		t.Fatalf("Multi-untag failed: %v", err)
+	}
+
+	content = readArticle(t, "test-update-tags")
+	if strings.Contains(content, "\na\n") || strings.Contains(content, "- a") {
+		t.Error("Tag a should be removed")
+	}
+	if strings.Contains(content, "\nb\n") || strings.Contains(content, "- b") {
+		t.Error("Tag b should be removed")
+	}
+	if !strings.Contains(content, "c") {
+		t.Error("Tag c should remain")
+	}
+
+	// Add tags back, then remove with comma-separated
+	_, err = runWiki("update", "test-update-tags", "--tag", "x", "--tag", "y")
+	if err != nil {
+		t.Fatalf("Add tags for comma untag failed: %v", err)
+	}
+
+	_, err = runWiki("update", "test-update-tags", "--untag", "c,x")
+	if err != nil {
+		t.Fatalf("Comma untag failed: %v", err)
+	}
+
+	content = readArticle(t, "test-update-tags")
+	if strings.Contains(content, "\nc\n") || strings.Contains(content, "- c") {
+		t.Error("Tag c should be removed (comma untag)")
+	}
+	if strings.Contains(content, "\nx\n") || strings.Contains(content, "- x") {
+		t.Error("Tag x should be removed (comma untag)")
+	}
+	if !strings.Contains(content, "y") {
+		t.Error("Tag y should remain after comma untag")
+	}
+
+	// Remove all remaining tags
+	_, err = runWiki("update", "test-update-tags", "--untag", "v2,ready,y")
+	if err != nil {
+		t.Fatalf("Remove all tags failed: %v", err)
+	}
+
+	content = readArticle(t, "test-update-tags")
+	if strings.Contains(content, "tags:") {
+		t.Error("All tags should be removed, tags field should be gone")
 	}
 }
 

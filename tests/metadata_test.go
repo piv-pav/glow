@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-func TestWikiMetadata(t *testing.T) {
+func TestWikiTags(t *testing.T) {
 	os.RemoveAll(testWikiData)
 	defer os.RemoveAll(testWikiData)
 
-	// Setup: create article
-	articleName := "meta-test"
-	content := "---\ntags: [initial]\nauthor: test\n---\n\n# Meta Test\n\nContent.\n"
+	// Setup: create article with tags
+	articleName := "tag-test"
+	content := "---\ntags:\n  - initial\n---\n\n# Tag Test\n\nContent.\n"
 
 	os.MkdirAll(filepath.Join(testWikiData, "default", "articles"), 0755)
 	err := os.WriteFile(getArticlePath(articleName), []byte(content), 0644)
@@ -23,94 +23,48 @@ func TestWikiMetadata(t *testing.T) {
 
 	runWiki("rebuild")
 
-	// Test meta set
-	_, err = runWiki("meta", "set", articleName, "status", "draft")
+	// Test adding tags
+	_, err = runWiki("update", articleName, "--tag", "added")
 	if err != nil {
-		t.Fatalf("Failed to set metadata: %v", err)
+		t.Fatalf("Failed to add tag: %v", err)
 	}
 
 	updated := readArticle(t, articleName)
-	if !strings.Contains(updated, "status: draft") {
-		t.Error("Metadata set failed")
-	}
-
-	// Test meta add (array)
-	_, err = runWiki("meta", "add", articleName, "tags", "added")
-	if err != nil {
-		t.Fatalf("Failed to add metadata: %v", err)
-	}
-
-	updated = readArticle(t, articleName)
 	if !strings.Contains(updated, "added") {
-		t.Error("Metadata add failed")
+		t.Error("Tag add failed")
+	}
+	if !strings.Contains(updated, "initial") {
+		t.Error("Original tag should remain")
 	}
 
-	// Test meta delete
-	_, err = runWiki("meta", "delete", articleName, "status")
+	// Test removing tags
+	_, err = runWiki("update", articleName, "--untag", "initial")
 	if err != nil {
-		t.Fatalf("Failed to delete metadata: %v", err)
+		t.Fatalf("Failed to remove tag: %v", err)
 	}
 
 	updated = readArticle(t, articleName)
-	if strings.Contains(updated, "status: draft") {
-		t.Error("Metadata delete failed")
+	if strings.Contains(updated, "initial") {
+		t.Error("Tag remove failed")
+	}
+	if !strings.Contains(updated, "added") {
+		t.Error("Other tags should remain")
 	}
 }
 
-func TestWikiMetaGet(t *testing.T) {
+func TestWikiCreateWithTags(t *testing.T) {
 	os.RemoveAll(testWikiData)
 	defer os.RemoveAll(testWikiData)
 
-	// Setup: create article
-	articleName := "meta-get-test"
-	content := "---\ntags: [one, two]\nauthor: test\n---\n\n# Meta Get Test\n\nContent.\n"
-
-	os.MkdirAll(filepath.Join(testWikiData, "default", "articles"), 0755)
-	err := os.WriteFile(getArticlePath(articleName), []byte(content), 0644)
+	// Create with comma-separated tags
+	_, err := runWiki("create", "tag-create-test", "--content", "Hello", "--tag", "go,cli")
 	if err != nil {
-		t.Fatalf("Failed to setup test article: %v", err)
+		t.Fatalf("Failed to create: %v", err)
 	}
+	t.Cleanup(func() { runWiki("delete", "tag-create-test") })
 
-	runWiki("rebuild")
-
-	tests := []struct {
-		name    string
-		key     string
-		want    string
-		wantErr bool
-	}{
-		{
-			name:    "get scalar metadata",
-			key:     "author",
-			want:    "test",
-			wantErr: false,
-		},
-		{
-			name:    "get array metadata",
-			key:     "tags",
-			want:    "one, two",
-			wantErr: false,
-		},
-		{
-			name:    "get non-existent key",
-			key:     "missing",
-			want:    "",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			output, err := runWiki("meta", "get", articleName, tt.key)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("meta get error = %v, wantErr %v\nOutput: %s", err, tt.wantErr, output)
-				return
-			}
-
-			if !tt.wantErr && !strings.Contains(output, tt.want) {
-				t.Errorf("meta get output = %q, want to contain %q", output, tt.want)
-			}
-		})
+	content := readArticle(t, "tag-create-test")
+	if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
+		t.Errorf("Expected both tags, got: %s", content)
 	}
 }

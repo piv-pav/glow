@@ -7,7 +7,6 @@ func RegisterCommands(root *cobra.Command) {
 	root.AddCommand(createCmd)
 	root.AddCommand(deleteCmd)
 	root.AddCommand(listCmd)
-	root.AddCommand(metaCmd)
 	root.AddCommand(moveCmd)
 	root.AddCommand(readCmd)
 	root.AddCommand(searchCmd)

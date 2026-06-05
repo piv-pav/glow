@@ -2,6 +2,7 @@ package article
 
 import (
 	"fmt"
+	"strings"
 )
 
 // SetMetadata sets a scalar metadata field (overwrites if exists)
@@ -138,4 +139,86 @@ func (a *Article) GetMetadataArray(key string) ([]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+// SetTags replaces the tags field with the given values.
+// Accepts comma-separated values within each string.
+func (a *Article) SetTags(tags ...string) {
+	var flat []string
+	for _, t := range tags {
+		for _, part := range strings.Split(t, ",") {
+			t = strings.TrimSpace(part)
+			if t != "" {
+				flat = append(flat, t)
+			}
+		}
+	}
+	if len(flat) > 0 {
+		a.Metadata["tags"] = flat
+	}
+}
+
+// AddTags appends tags to the existing tags field.
+// Accepts comma-separated values within each string.
+func (a *Article) AddTags(tags ...string) {
+	var flat []string
+	for _, t := range tags {
+		for _, part := range strings.Split(t, ",") {
+			t = strings.TrimSpace(part)
+			if t != "" {
+				flat = append(flat, t)
+			}
+		}
+	}
+	if len(flat) == 0 {
+		return
+	}
+
+	existing, ok := a.GetMetadataArray("tags")
+	if ok {
+		a.Metadata["tags"] = append(existing, flat...)
+	} else {
+		a.Metadata["tags"] = flat
+	}
+}
+
+// RemoveTags removes specified tags from the tags field.
+// Accepts comma-separated values within each string.
+// Deletes the tags field entirely if empty after removal.
+func (a *Article) RemoveTags(tags ...string) {
+	var toRemove []string
+	for _, t := range tags {
+		for _, part := range strings.Split(t, ",") {
+			t = strings.TrimSpace(part)
+			if t != "" {
+				toRemove = append(toRemove, t)
+			}
+		}
+	}
+	if len(toRemove) == 0 {
+		return
+	}
+
+	removeSet := make(map[string]bool, len(toRemove))
+	for _, t := range toRemove {
+		removeSet[t] = true
+	}
+
+	existing, ok := a.GetMetadataArray("tags")
+	if !ok {
+		return
+	}
+
+	var kept []string
+	for _, t := range existing {
+		if !removeSet[t] {
+			kept = append(kept, t)
+		}
+	}
+
+	if len(kept) == 0 {
+		delete(a.Metadata, "tags")
+	} else {
+		a.Metadata["tags"] = kept
+	}
 }

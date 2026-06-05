@@ -11,7 +11,7 @@ description: GLOW wiki operations. Use for ALL glow commands, wiki searches, kno
 
 **ALWAYS use this skill when**:
 - User says: "remember", "note", "memory", "wiki", "save this", "store"
-- Running ANY `glow` command (search, read, create, update, append, meta, etc.)
+- Running ANY `glow` command (search, read, create, update, append, etc.)
 - Looking up project context, team info, engineering patterns
 - User asks about past work, decisions, configurations
 - Need to persist learnings across sessions
@@ -49,7 +49,7 @@ glow create "article-name" --content "# Title
 
 First paragraph.
 
-Second paragraph." --meta "tags:value"
+Second paragraph." --tag "value"
 echo "Content" | glow create "article-name" --stdin
 
 # Update
@@ -65,11 +65,11 @@ echo "More content" | glow append "article-name" --stdin
 
 Note: `\n` in `--content` is also interpreted if needed, but multiline strings are preferred.
 
-### Metadata
+### Tags
 ```bash
-glow meta get "article-name" tags
-glow meta add "article-name" tags kafka eventhub
-glow meta set "article-name" status "active"
+glow update "article-name" --tag kafka
+glow update "article-name" --untag oldtag
+glow update "article-name" --tag a,b --untag c
 ```
 
 ### Management
@@ -80,7 +80,7 @@ glow delete "article-name"
 
 ## Mandatory Rules
 
-- **Tagging**: Every article MUST have `tags` metadata
+- **Tagging**: Every article MUST have tags. Use `--tag` on create/update.
 - **Cross-linking**: Use `[[folder/article]]` wikilinks in content
 - **Search first**: Always search before writing to avoid duplicates
 

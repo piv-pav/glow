@@ -3,8 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"codeberg.org/pivpav/glow/internal/index"
-	"codeberg.org/pivpav/glow/internal/storage"
+	"codeberg.org/pivpav/glow/internal/article"
 	"github.com/spf13/cobra"
 )
 
@@ -12,17 +11,21 @@ var (
 	updateSection string
 	updateContent string
 	updateStdin   bool
+	updateTags    []string
+	updateUntags  []string
 )
 
 var updateCmd = &cobra.Command{
 	Use:   "update [article-name]",
 	Short: "Update an existing article",
-	Long:  `Update article content or specific section. Use --content or pipe via --stdin. For metadata changes use 'glow meta'.`,
+	Long:  `Update article content or specific section. Use --content or pipe via --stdin. Use --tag/--untag to manage tags.`,
 	Args:  cobra.ExactArgs(1),
 	RunE:  runUpdate,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !updateStdin && updateContent == "" {
-			return fmt.Errorf("must specify one of: --content or --stdin")
+		hasContent := updateStdin || updateContent != ""
+		hasTags := len(updateTags) > 0 || len(updateUntags) > 0
+		if !hasContent && !hasTags {
+			return fmt.Errorf("must specify --content, --stdin, --tag, or --untag")
 		}
 		return nil
 	},
@@ -32,43 +35,44 @@ func init() {
 	updateCmd.Flags().StringVar(&updateSection, "section", "", "Update only specific section by heading")
 	updateCmd.Flags().StringVar(&updateContent, "content", "", "New content")
 	updateCmd.Flags().BoolVar(&updateStdin, "stdin", false, "Read content from stdin")
+	updateCmd.Flags().StringArrayVar(&updateTags, "tag", []string{}, "Add tag (comma-separated or repeated: --tag go --tag cli)")
+	updateCmd.Flags().StringArrayVar(&updateUntags, "untag", []string{}, "Remove tag (comma-separated or repeated: --untag go --untag cli)")
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	newContent, err := readContent(updateStdin, updateContent)
-	if err != nil {
-		return err
-	}
-
-	store := storage.New(wikiName)
-	art, err := store.Read(name)
-	if err != nil {
-		return err
-	}
-
-	if updateSection != "" {
-		if err := art.UpdateSection(updateSection, newContent); err != nil {
+	var newContent string
+	if updateStdin || updateContent != "" {
+		var err error
+		newContent, err = readContent(updateStdin, updateContent)
+		if err != nil {
 			return err
 		}
-	} else {
-		art.Content = newContent
 	}
 
-	if err := store.Update(name, art); err != nil {
-		return err
+	msg := fmt.Sprintf("Updated article: %s", name)
+	if updateSection != "" {
+		msg = fmt.Sprintf("Updated section %q in article: %s", updateSection, name)
 	}
 
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.UpdateArticle(name, art); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
+	return modifyArticle(wikiName, name, func(art *article.Article) error {
+		if newContent != "" {
+			if updateSection != "" {
+				if err := art.UpdateSection(updateSection, newContent); err != nil {
+					return err
+				}
+			} else {
+				art.Content = newContent
+			}
 		}
-		fmt.Printf("Updated article: %s\n", name)
-		if updateSection != "" {
-			fmt.Printf("Section: %s\n", updateSection)
+		if len(updateTags) > 0 {
+			art.AddTags(updateTags...)
+		}
+		if len(updateUntags) > 0 {
+			art.RemoveTags(updateUntags...)
 		}
 		return nil
-	})
+	}, msg)
 }

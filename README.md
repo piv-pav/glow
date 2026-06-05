@@ -6,7 +6,7 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 
 - 📝 **Markdown Articles** - Store articles with YAML frontmatter metadata
 - 🔍 **Full-Text Search** - Powered by Bleve search engine
-- 🏷️ **Flexible Metadata** - Tags, projects, custom fields, aliases
+- 🏷️ **Tagging** - Add/remove tags for organization and search
 - 📁 **Nested Folders** - Organize articles in hierarchical structure
 - ✂️ **Section Editing** - Update specific sections of articles
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
@@ -36,11 +36,7 @@ just build    # Runs tests then builds
 # Create an article
 glow create "my-first-article" --content "# Hello
 
-My first wiki article."
-
-# Add metadata
-glow meta add my-first-article tags go cli
-glow meta set my-first-article author "Your Name"
+My first wiki article." --tag go --tag wiki
 
 # Search articles
 glow search "search term tag:go"
@@ -62,7 +58,7 @@ glow -w work create "work-notes" --content "Notes"
 ```bash
 # Create article
 glow create "article-name" --content "Content"
-glow create "folder/article-name" --content "Content" --meta "tags:go" --meta "project:glow"
+glow create "folder/article-name" --content "Content" --tag go --tag glow
 
 # Create with multiline content (preferred)
 glow create "article-name" --content "# Title
@@ -88,6 +84,11 @@ glow update "article-name" --content "# Title
 Multiline content"
 echo "New content" | glow update "article-name" --stdin
 
+# Update tags
+glow update "article-name" --tag newtag
+glow update "article-name" --untag oldtag
+glow update "article-name" --tag a,b --untag c
+
 # Update specific section
 glow update "article-name" --section "Installation" --content "New section content"
 
@@ -112,20 +113,22 @@ glow move "old-name" "new-name"
 glow move "article" "folder/article"
 ```
 
-### Metadata Management
+### Tag Management
 
 ```bash
-# Set scalar field
-glow meta set article-name author "Pavel"
-glow meta set article-name status "draft"
+# Add tags on create
+glow create "article" --content "Content" --tag go --tag cli
 
-# Add to array field
-glow meta add article-name tags go cli
-glow meta add article-name projects glow
+# Add tags on update
+glow update "article" --tag newtag
+glow update "article" --tag a,b  # comma-separated
 
-# Delete field
-glow meta delete article-name status              # Delete entire field
-glow meta delete article-name tags go             # Remove from array
+# Remove tags
+glow update "article" --untag oldtag
+glow update "article" --untag a,b  # comma-separated
+
+# Combine add and remove
+glow update "article" --tag new --untag old
 ```
 
 ### Search
@@ -275,7 +278,6 @@ glow/
 │   ├── delete.go
 │   ├── helpers.go
 │   ├── list.go
-│   ├── meta.go
 │   ├── move.go
 │   ├── read.go
 │   ├── search.go

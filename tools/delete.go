@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 
+	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
@@ -28,31 +29,14 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	store := storage.New(wikiName)
-
 	if deleteSection != "" {
-		art, err := store.Read(name)
-		if err != nil {
-			return err
-		}
-
-		if err := art.DeleteSection(deleteSection); err != nil {
-			return err
-		}
-
-		if err := store.Update(name, art); err != nil {
-			return err
-		}
-
-		return withIndex(wikiName, func(idx *index.Index) error {
-			if err := idx.UpdateArticle(name, art); err != nil {
-				return fmt.Errorf("failed to update index: %w", err)
-			}
-			fmt.Printf("Deleted section: %s from article: %s\n", deleteSection, name)
-			return nil
-		})
+		msg := fmt.Sprintf("Deleted section: %s from article: %s", deleteSection, name)
+		return modifyArticle(wikiName, name, func(art *article.Article) error {
+			return art.DeleteSection(deleteSection)
+		}, msg)
 	}
 
+	store := storage.New(wikiName)
 	if err := store.Delete(name); err != nil {
 		return err
 	}

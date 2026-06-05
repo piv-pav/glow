@@ -10,15 +10,15 @@ import (
 )
 
 var (
-	createMeta    []string
-	createContent string
-	createStdin   bool
+	createTags     []string
+	createContent  string
+	createStdin    bool
 )
 
 var createCmd = &cobra.Command{
 	Use:   "create [article-name]",
 	Short: "Create a new article",
-	Long:  `Create a new article with optional metadata. Article name can include folders (e.g., folder/article).`,
+	Long:  `Create a new article with optional tags. Article name can include folders (e.g., folder/article).`,
 	Args:  cobra.ExactArgs(1),
 	RunE:  runCreate,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -30,7 +30,7 @@ var createCmd = &cobra.Command{
 }
 
 func init() {
-	createCmd.Flags().StringArrayVar(&createMeta, "meta", []string{}, "Metadata in key:value format (can be repeated)")
+	createCmd.Flags().StringArrayVar(&createTags, "tag", []string{}, "Add tag (comma-separated or repeated: --tag go --tag cli)")
 	createCmd.Flags().StringVar(&createContent, "content", "", "Article content")
 	createCmd.Flags().BoolVar(&createStdin, "stdin", false, "Read content from stdin")
 }
@@ -46,8 +46,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	art := article.New(content)
 
-	if err := parseMeta(art, createMeta); err != nil {
-		return err
+	if len(createTags) > 0 {
+		art.AddTags(createTags...)
 	}
 
 	store := storage.New(wikiName)

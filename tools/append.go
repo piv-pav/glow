@@ -3,8 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"codeberg.org/pivpav/glow/internal/index"
-	"codeberg.org/pivpav/glow/internal/storage"
+	"codeberg.org/pivpav/glow/internal/article"
 	"github.com/spf13/cobra"
 )
 
@@ -43,35 +42,19 @@ func runAppend(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	store := storage.New(wikiName)
-	art, err := store.Read(name)
-	if err != nil {
-		return err
+	msg := fmt.Sprintf("Appended to article: %s", name)
+	if appendSection != "" {
+		msg = fmt.Sprintf("Appended to section %q in article: %s", appendSection, name)
 	}
 
-	if appendSection != "" {
-		if err := art.AppendToSection(appendSection, content); err != nil {
-			return err
+	return modifyArticle(wikiName, name, func(art *article.Article) error {
+		if appendSection != "" {
+			return art.AppendToSection(appendSection, content)
 		}
-	} else {
 		if art.Content != "" && art.Content[len(art.Content)-1] != '\n' {
 			art.Content += "\n"
 		}
 		art.Content += "\n" + content
-	}
-
-	if err := store.Update(name, art); err != nil {
-		return err
-	}
-
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.UpdateArticle(name, art); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
-		}
-		fmt.Printf("Appended to article: %s\n", name)
-		if appendSection != "" {
-			fmt.Printf("Section: %s\n", appendSection)
-		}
 		return nil
-	})
+	}, msg)
 }
