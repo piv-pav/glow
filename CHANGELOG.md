@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-06-05
+
+### Breaking Changes
+- **`update`**: Removed `--meta` flag. Use `glow meta set/add` for all metadata changes.
+- **`append --section`**: Now errors if section not found (previously silently created section with hardcoded `##` prefix)
+
+### Fixed
+- `AppendToSection` no longer silently creates malformed sections on missing heading
+- `DeleteSection` had wrong doc comment (copy-paste artifact from `AppendToSection`)
+
+### Refactored
+- `readContent()` helper eliminates duplicated stdin/`--content` branching across create/update/append
+- `parseMeta()` helper eliminates duplicated metadata parsing in create
+- `article.New()` now receives content directly instead of post-assignment
+- `os.ReadFile("/dev/stdin")` replaced with `io.ReadAll(os.Stdin)` (more portable)
+- Removed stale `cmd/wiki/` directory (dead code with old module path)
+- `search_test.go`: replaced fragile `sh -c echo` pipe with direct `runWiki` call
+
+### Docs
+- `--content` examples now use multiline strings (preferred over `\n` escapes)
+- `\n` in `--content` is still interpreted as fallback
+- Removed stale `verify` command, alias commands (`show`, `cat`), `printf` examples
+
 ## [0.5.2] - 2026-05-27
 
 ### Changed

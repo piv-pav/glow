@@ -220,7 +220,7 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	return nil
 }
 
-// AppendToSection appends content to specific section
+// DeleteSection removes a section by heading
 func (a *Article) DeleteSection(heading string) error {
 	section := a.FindSection(heading)
 	if section == nil {
@@ -251,12 +251,7 @@ func (a *Article) DeleteSection(heading string) error {
 func (a *Article) AppendToSection(heading, content string) error {
 	section := a.FindSection(heading)
 	if section == nil {
-		// Section doesn't exist, create it at end
-		if a.Content != "" && !strings.HasSuffix(a.Content, "\n") {
-			a.Content += "\n"
-		}
-		a.Content += fmt.Sprintf("\n## %s\n\n%s", heading, content)
-		return nil
+		return fmt.Errorf("section %q not found", heading)
 	}
 
 	lines := strings.Split(a.Content, "\n")

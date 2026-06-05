@@ -10,7 +10,7 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 - 📁 **Nested Folders** - Organize articles in hierarchical structure
 - ✂️ **Section Editing** - Update specific sections of articles
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
-- 🔧 **Index Management** - Verify and rebuild search index
+- 🔧 **Index Management** - Rebuild search index if corrupted
 
 ## Installation
 
@@ -34,7 +34,9 @@ just build    # Runs tests then builds
 
 ```bash
 # Create an article
-glow create "my-first-article"
+glow create "my-first-article" --content "# Hello
+
+My first wiki article."
 
 # Add metadata
 glow meta add my-first-article tags go cli
@@ -50,7 +52,7 @@ glow list
 glow wiki-create work
 
 # Use different wiki
-glow -w work create "work-notes"
+glow -w work create "work-notes" --content "Notes"
 ```
 
 ## Usage
@@ -59,43 +61,51 @@ glow -w work create "work-notes"
 
 ```bash
 # Create article
-glow create "article-name"
-glow create "folder/article-name" --meta "tags:go" --meta "project:glow"
+glow create "article-name" --content "Content"
+glow create "folder/article-name" --content "Content" --meta "tags:go" --meta "project:glow"
 
-# Create with content (no editor - LLM-friendly)
+# Create with multiline content (preferred)
+glow create "article-name" --content "# Title
+
+Content here"
+echo "# Title
+
+Content" | glow create "article-name" --stdin
+
+# \n escapes also work in --content
 glow create "article-name" --content "# Title\n\nContent here"
-echo "# Title\n\nContent" | glow create "article-name" --stdin
 
 # Read article
 glow read "article-name"                    # Content only
 glow read "article-name" --raw              # Include frontmatter
-glow read "article-name" --section="Setup"  # Read specific section
+glow read "article-name" --section "Setup"  # Read specific section
 glow read "article-name" --sections         # List all sections
 
-# Aliases: show, cat
-glow show "article-name"
-glow cat "article-name" -s "Examples"
-
 # Update article
-glow update "article-name"                  # Opens editor
-glow update "article-name" --content "New content"  # No editor
+glow update "article-name" --content "New content"
+glow update "article-name" --content "# Title
+
+Multiline content"
 echo "New content" | glow update "article-name" --stdin
 
 # Update specific section
-glow update "article-name" --section="Installation"
-glow update "article-name" --section="Installation" --content "New section content"
+glow update "article-name" --section "Installation" --content "New section content"
 
 # Append content
-glow append "article-name" "Additional content here"
+glow append "article-name" --content "Additional content"
+glow append "article-name" --content "Line 1
+
+Line 2"
+echo "Additional content" | glow append "article-name" --stdin
 
 # Append to section
-glow append "article-name" --section="Examples" "New example"
+glow append "article-name" --section "Examples" --content "New example"
 
 # Delete article
 glow delete "article-name"
 
 # Delete specific section
-glow delete "article-name" --section="Section Heading"
+glow delete "article-name" --section "Section Heading"
 
 # Move/rename article
 glow move "old-name" "new-name"
@@ -144,10 +154,7 @@ glow wiki-create work
 
 # Use specific wiki
 glow -w work list
-glow -w personal create "notes"
-
-# Verify index health
-glow verify
+glow -w personal create "notes" --content "Notes"
 
 # Rebuild index (if corrupted)
 glow rebuild

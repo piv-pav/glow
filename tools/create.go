@@ -2,8 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
 	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/index"
@@ -41,48 +39,18 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	wikiName := wikiNameFrom(cmd)
 
+	content, err := readContent(createStdin, createContent)
+	if err != nil {
+		return err
+	}
+
+	art := article.New(content)
+
+	if err := parseMeta(art, createMeta); err != nil {
+		return err
+	}
+
 	store := storage.New(wikiName)
-
-	art := article.New("")
-
-	for _, meta := range createMeta {
-		parts := strings.SplitN(meta, ":", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid metadata format: %s (expected key:value)", meta)
-		}
-
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-
-		if strings.Contains(value, ",") {
-			values := strings.Split(value, ",")
-			for i := range values {
-				values[i] = strings.TrimSpace(values[i])
-			}
-			if err := art.AddMetadata(key, values...); err != nil {
-				return err
-			}
-		} else {
-			art.SetMetadata(key, value)
-		}
-	}
-
-	var content string
-	if createStdin {
-		data, err := os.ReadFile("/dev/stdin")
-		if err != nil {
-			return fmt.Errorf("failed to read stdin: %w", err)
-		}
-		content = string(data)
-	} else if createContent != "" {
-		var err error
-		content, err = unescapeContent(createContent)
-		if err != nil {
-			return err
-		}
-	}
-	art.Content = content
-
 	if err := store.Create(name, art); err != nil {
 		return err
 	}

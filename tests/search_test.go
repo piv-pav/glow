@@ -2,7 +2,6 @@ package tests
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -133,7 +132,7 @@ func TestWikiRead(t *testing.T) {
 	os.RemoveAll(testWikiData)
 	defer os.RemoveAll(testWikiData)
 
-	// Create article with sections (via --content, frontmatter added automatically)
+	// Create article with sections
 	content := `# Title
 
 Intro.
@@ -145,10 +144,8 @@ Content A.
 ## Section B
 
 Content B.`
-	cmd := exec.Command("sh", "-c", "echo '"+content+"' | glow create read-test --stdin --meta tags:test")
-	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to create article: %v\nOutput: %s", err, string(output))
+	if output, err := runWiki("create", "read-test", "--content", content, "--meta", "tags:test"); err != nil {
+		t.Fatalf("Failed to create article: %v\nOutput: %s", err, output)
 	}
 
 	// Read without --raw (should omit frontmatter)

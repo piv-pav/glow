@@ -41,19 +41,29 @@ glow read "article-name" --section "Section Name"
 ```
 
 ### Write/Update Articles
+
+**Prefer multiline `--content` over `\n` escape sequences** — cleaner and less error-prone:
 ```bash
 # Create
-echo "Content" | glow create "article-name" --stdin --meta "tags:value"
-glow create "article-name" --content "Content" --meta "tags:value"
+glow create "article-name" --content "# Title
+
+First paragraph.
+
+Second paragraph." --meta "tags:value"
+echo "Content" | glow create "article-name" --stdin
 
 # Update
-echo "Content" | glow update "article-name" --stdin
-glow update "article-name" --section "Section" --content "Content"
+glow update "article-name" --content "New content"
+glow update "article-name" --section "Section" --content "Section content"
+echo "New content" | glow update "article-name" --stdin
 
 # Append
-echo "Content" | glow append "article-name" --stdin
-glow append "article-name" --section "Section" --content "Content"
+glow append "article-name" --content "More content"
+glow append "article-name" --section "Section" --content "New item"
+echo "More content" | glow append "article-name" --stdin
 ```
+
+Note: `\n` in `--content` is also interpreted if needed, but multiline strings are preferred.
 
 ### Metadata
 ```bash

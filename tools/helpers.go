@@ -2,9 +2,12 @@ package tools
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 
+	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/index"
 	"github.com/spf13/cobra"
 )
@@ -24,6 +27,42 @@ func withIndex(wikiName string, fn func(*index.Index) error) error {
 	return fn(idx)
 }
 
+// readContent returns content from stdin or --content flag (with escape interpretation).
+func readContent(stdin bool, content string) (string, error) {
+	if stdin {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("failed to read stdin: %w", err)
+		}
+		return string(data), nil
+	}
+	return unescapeContent(content)
+}
+
+// parseMeta parses "key:value" metadata strings into an article's metadata.
+func parseMeta(art *article.Article, meta []string) error {
+	for _, m := range meta {
+		parts := strings.SplitN(m, ":", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid metadata format: %s (expected key:value)", m)
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if strings.Contains(value, ",") {
+			values := strings.Split(value, ",")
+			for i := range values {
+				values[i] = strings.TrimSpace(values[i])
+			}
+			if err := art.AddMetadata(key, values...); err != nil {
+				return err
+			}
+		} else {
+			art.SetMetadata(key, value)
+		}
+	}
+	return nil
+}
+
 func splitLines(s string) []string {
 	return strings.Split(s, "\n")
 }
@@ -41,13 +80,13 @@ func unescapeContent(s string) (string, error) {
 	if !strings.Contains(s, "\\") {
 		return s, nil
 	}
-	
+
 	// strconv.Unquote rejects raw newlines in quoted strings.
 	// Escape them first so both raw newlines and escape sequences get interpreted.
 	s = strings.ReplaceAll(s, "\n", "\\n")
-	unquoted, err := strconv.Unquote("\"" + s + "\"")
+	unquoted, err := strconv.Unquote(`"` + s + `"`)
 	if err != nil {
-		return "", fmt.Errorf("invalid escape sequence in --content: %w\nUse --stdin instead for content with special characters", err)
+		return "", fmt.Errorf("invalid escape sequence in --content: %w", err)
 	}
 	return unquoted, nil
 }

@@ -2,7 +2,6 @@ package tools
 
 import (
 	"fmt"
-	"os"
 
 	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
@@ -10,9 +9,9 @@ import (
 )
 
 var (
-	appendSection  string
-	appendContent  string
-	appendStdin    bool
+	appendSection string
+	appendContent string
+	appendStdin   bool
 )
 
 var appendCmd = &cobra.Command{
@@ -39,23 +38,12 @@ func runAppend(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	var content string
-	if appendStdin {
-		data, err := os.ReadFile("/dev/stdin")
-		if err != nil {
-			return fmt.Errorf("failed to read stdin: %w", err)
-		}
-		content = string(data)
-	} else {
-		var err error
-		content, err = unescapeContent(appendContent)
-		if err != nil {
-			return err
-		}
+	content, err := readContent(appendStdin, appendContent)
+	if err != nil {
+		return err
 	}
 
 	store := storage.New(wikiName)
-
 	art, err := store.Read(name)
 	if err != nil {
 		return err
