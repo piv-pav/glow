@@ -10,6 +10,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// headingRegex matches markdown headings (1-6 # characters followed by a space and the heading text).
+var headingRegex = regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
+
 // Article represents a wiki article with frontmatter and content
 type Article struct {
 	Frontmatter map[string]interface{} // tags, created, modified, path
@@ -100,7 +103,6 @@ type Section struct {
 func (a *Article) ParseSections() []Section {
 	lines := strings.Split(a.Content, "\n")
 	var sections []Section
-	headingRegex := regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
 
 	currentSection := Section{
 		Heading: "",
@@ -161,7 +163,6 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	}
 
 	lines := strings.Split(a.Content, "\n")
-	headingRegex := regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
 
 	// Check if newContent starts with the same heading
 	newContentLines := strings.Split(strings.TrimSpace(newContent), "\n")
