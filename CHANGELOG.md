@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-06-09
+
+### Fixed
+- `AddTags()` now deduplicates against existing tags
+- `Serialize()` no longer mutates article timestamps (moved to storage layer)
+
+### Improved
+- Search: keyword analyzer for `tags` and `path` fields — exact match, no false positives from stemming
+- Search: tags indexed as individual terms (array) instead of space-joined string
+- `List()` uses `filepath.WalkDir` instead of `filepath.Walk` (avoids extra stat per entry)
+- `move` command no longer performs redundant file read before move
+- Extracted `articleToDoc()` helper — eliminates duplicate metadata→index conversion
+
+### Refactored
+- Renamed `Article.Metadata` → `Article.Frontmatter` (clarity: it's YAML frontmatter, not generic metadata)
+- Renamed `SearchResult.Metadata` → `SearchResult.Fields`
+- Removed dead generic metadata functions (`SetMetadata`, `AddMetadata`, `DeleteMetadata`, `GetMetadataString`, `GetMetadataArray`)
+- Renamed `metadata.go` → `tags.go`, `metadata_test.go` → `tags_test.go`
+- Added `GetTags()` method as the single way to read tags
+
 ## [0.7.0] - 2026-06-05
 
 ### Breaking Changes

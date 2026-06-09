@@ -3,7 +3,6 @@ package index
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -56,10 +55,26 @@ func New(wikiName string) (*Index, error) {
 	return i, nil
 }
 
-// createIndexMapping creates Bleve index mapping
+// createIndexMapping creates Bleve index mapping with keyword analyzers for structured fields
 func createIndexMapping() mapping.IndexMapping {
-	mapping := bleve.NewIndexMapping()
-	return mapping
+	indexMapping := bleve.NewIndexMapping()
+
+	// Article document mapping
+	articleMapping := bleve.NewDocumentMapping()
+
+	// Tags: keyword (no stemming/tokenization) for exact match
+	keywordField := bleve.NewTextFieldMapping()
+	keywordField.Analyzer = "keyword"
+	articleMapping.AddFieldMappingsAt("tags", keywordField)
+
+	// Path: keyword for exact prefix matching
+	pathField := bleve.NewTextFieldMapping()
+	pathField.Analyzer = "keyword"
+	articleMapping.AddFieldMappingsAt("path", pathField)
+
+	indexMapping.DefaultMapping = articleMapping
+
+	return indexMapping
 }
 
 // Close closes the index
@@ -70,15 +85,13 @@ func (i *Index) Close() error {
 	return nil
 }
 
-// IndexArticle indexes or updates an article
-func (i *Index) IndexArticle(name string, article *article.Article) error {
-	// Build document for indexing
+// articleToDoc converts an article to an indexable document.
+func articleToDoc(name string, art *article.Article) map[string]interface{} {
 	doc := map[string]interface{}{
-		"content": article.Content,
+		"content": art.Content,
 	}
 
-	// Add all metadata fields (inline flatten for performance)
-	for key, val := range article.Metadata {
+	for key, val := range art.Frontmatter {
 		switch v := val.(type) {
 		case []interface{}:
 			strs := make([]string, 0, len(v))
@@ -87,20 +100,25 @@ func (i *Index) IndexArticle(name string, article *article.Article) error {
 					strs = append(strs, str)
 				}
 			}
-			doc[key] = strings.Join(strs, " ")
+			// Keep as array for keyword fields (e.g. tags) — Bleve indexes each element
+			doc[key] = strs
 		case []string:
-			doc[key] = strings.Join(v, " ")
+			doc[key] = v
 		default:
 			doc[key] = val
 		}
 	}
 
-	// Ensure path is set
 	if _, ok := doc["path"]; !ok {
 		doc["path"] = name
 	}
 
-	return i.index.Index(name, doc)
+	return doc
+}
+
+// IndexArticle indexes or updates an article
+func (i *Index) IndexArticle(name string, art *article.Article) error {
+	return i.index.Index(name, articleToDoc(name, art))
 }
 
 // DeleteArticle removes article from index
@@ -143,39 +161,12 @@ func (i *Index) Rebuild(articles map[string]*article.Article) error {
 
 	count := 0
 	for name, art := range articles {
-		doc := map[string]interface{}{
-			"content": art.Content,
-		}
-
-		// Inline flatten metadata
-		for key, val := range art.Metadata {
-			switch v := val.(type) {
-			case []interface{}:
-				strs := make([]string, 0, len(v))
-				for _, item := range v {
-					if str, ok := item.(string); ok {
-						strs = append(strs, str)
-					}
-				}
-				doc[key] = strings.Join(strs, " ")
-			case []string:
-				doc[key] = strings.Join(v, " ")
-			default:
-				doc[key] = val
-			}
-		}
-
-		if _, ok := doc["path"]; !ok {
-			doc["path"] = name
-		}
-
-		if err := batch.Index(name, doc); err != nil {
+		if err := batch.Index(name, articleToDoc(name, art)); err != nil {
 			return fmt.Errorf("failed to add article to batch: %w", err)
 		}
 
 		count++
 
-		// Execute batch every batchSize articles
 		if count%batchSize == 0 {
 			if err := i.index.Batch(batch); err != nil {
 				return fmt.Errorf("failed to execute batch: %w", err)

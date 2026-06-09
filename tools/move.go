@@ -23,11 +23,6 @@ func runMove(cmd *cobra.Command, args []string) error {
 
 	store := storage.New(wikiName)
 
-	art, err := store.Read(oldName)
-	if err != nil {
-		return err
-	}
-
 	if err := store.Move(oldName, newName); err != nil {
 		return err
 	}
@@ -37,7 +32,7 @@ func runMove(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to remove old entry from index: %w", err)
 		}
 
-		art, err = store.Read(newName)
+		art, err := store.Read(newName)
 		if err != nil {
 			return err
 		}

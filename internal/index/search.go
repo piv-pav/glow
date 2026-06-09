@@ -10,10 +10,10 @@ import (
 
 // SearchResult represents a search result
 type SearchResult struct {
-	Name     string
-	Score    float64
-	Metadata map[string]interface{}
-	Snippet  string
+	Name    string
+	Score   float64
+	Fields  map[string]interface{}
+	Snippet string
 }
 
 // Search searches the index with query and filters
@@ -71,12 +71,18 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 
 	// Add filter queries
 	for field, value := range filters {
-		if field == "path" {
-			// Path uses prefix match
+		switch field {
+		case "path":
+			// Path uses prefix match (keyword field)
 			prefixQuery := bleve.NewPrefixQuery(value)
 			prefixQuery.SetField("path")
 			queries = append(queries, prefixQuery)
-		} else {
+		case "tag", "tags":
+			// Tags use term query (keyword field, no analysis)
+			termQuery := bleve.NewTermQuery(value)
+			termQuery.SetField("tags")
+			queries = append(queries, termQuery)
+		default:
 			// Other fields use match query
 			fieldQuery := bleve.NewMatchQuery(value)
 			fieldQuery.SetField(field)
@@ -113,7 +119,7 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 		result := SearchResult{
 			Name:     hit.ID,
 			Score:    hit.Score,
-			Metadata: hit.Fields,
+			Fields:  hit.Fields,
 		}
 
 		// Extract snippet from highlights

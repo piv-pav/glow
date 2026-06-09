@@ -30,7 +30,7 @@ func init() {
 var rootCmd = &cobra.Command{
 	Use:     "glow",
 	Short:   "GLOW - Go LLM-Oriented Wiki",
-	Long:    `A simple CLI tool providing wiki-like access to markdown articles with full-text search and metadata management.`,
+	Long:    `A simple CLI tool providing wiki-like access to markdown articles with full-text search and tag management.`,
 }
 
 func main() {

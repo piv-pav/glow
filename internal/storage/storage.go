@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/config"
@@ -64,8 +65,8 @@ func (s *Storage) Create(name string, article *article.Article) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	// Add path metadata
-	article.Metadata["path"] = s.normalizeArticleName(name)
+	// Add path to frontmatter
+	article.Frontmatter["path"] = s.normalizeArticleName(name)
 
 	return s.write(path, article)
 }
@@ -106,8 +107,8 @@ func (s *Storage) Update(name string, article *article.Article) error {
 		return fmt.Errorf("article not found: %s", name)
 	}
 
-	// Update path metadata
-	article.Metadata["path"] = s.normalizeArticleName(name)
+	// Update path in frontmatter
+	article.Frontmatter["path"] = s.normalizeArticleName(name)
 
 	return s.write(path, article)
 }
@@ -159,14 +160,14 @@ func (s *Storage) Move(oldName, newName string) error {
 		return fmt.Errorf("failed to create destination directories: %w", err)
 	}
 
-	// Read article to update path metadata
+	// Read article to update path in frontmatter
 	art, err := s.Read(oldName)
 	if err != nil {
 		return err
 	}
 
-	// Update path metadata
-	art.Metadata["path"] = s.normalizeArticleName(newName)
+	// Update path in frontmatter
+	art.Frontmatter["path"] = s.normalizeArticleName(newName)
 
 	// Write to new location
 	if err := s.write(newPath, art); err != nil {
@@ -195,19 +196,17 @@ func (s *Storage) List() ([]string, error) {
 
 	var articles []string
 
-	err = filepath.Walk(articlesPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(articlesPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && strings.HasSuffix(path, ".md") {
-			// Get relative path from articles directory
+		if !d.IsDir() && strings.HasSuffix(path, ".md") {
 			relPath, err := filepath.Rel(articlesPath, path)
 			if err != nil {
 				return err
 			}
 
-			// Remove .md extension
 			name := strings.TrimSuffix(relPath, ".md")
 			articles = append(articles, name)
 		}
@@ -218,8 +217,15 @@ func (s *Storage) List() ([]string, error) {
 	return articles, err
 }
 
-// write writes article to file
+// write writes article to file, updating timestamps
 func (s *Storage) write(path string, article *article.Article) error {
+	// Ensure created timestamp exists
+	if _, exists := article.Frontmatter["created"]; !exists {
+		article.Frontmatter["created"] = time.Now().Format(time.RFC3339)
+	}
+	// Always update modified timestamp
+	article.Frontmatter["modified"] = time.Now().Format(time.RFC3339)
+
 	data, err := article.Serialize()
 	if err != nil {
 		return err

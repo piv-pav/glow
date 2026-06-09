@@ -16,7 +16,7 @@ var (
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
 	Short: "Search articles",
-	Long: `Search articles by content and metadata. 
+	Long: `Search articles by content and tags. 
 	
 Query can include embedded filters:
   glow search "query text tag:go project:glow path:folder/"
@@ -66,11 +66,11 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 			var metaParts []string
 
-			if tags, ok := result.Metadata["tags"].(string); ok && tags != "" {
+			if tags, ok := result.Fields["tags"].(string); ok && tags != "" {
 				metaParts = append(metaParts, "tags: "+tags)
 			}
 
-			if project, ok := result.Metadata["project"].(string); ok && project != "" {
+			if project, ok := result.Fields["project"].(string); ok && project != "" {
 				metaParts = append(metaParts, "project: "+project)
 			}
 

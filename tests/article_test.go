@@ -40,7 +40,7 @@ func TestWikiCreate(t *testing.T) {
 			check: func(t *testing.T, output string) {
 				content := readArticle(t, "test-tags")
 				if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
-					t.Errorf("Expected tags in metadata")
+					t.Errorf("Expected tags in frontmatter")
 				}
 			},
 		},
@@ -50,7 +50,7 @@ func TestWikiCreate(t *testing.T) {
 			check: func(t *testing.T, output string) {
 				content := readArticle(t, "test-comma-tags")
 				if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
-					t.Errorf("Expected both tags in metadata")
+					t.Errorf("Expected both tags in frontmatter")
 				}
 			},
 		},

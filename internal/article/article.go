@@ -10,17 +10,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Article represents a wiki article with metadata and content
+// Article represents a wiki article with frontmatter and content
 type Article struct {
-	Metadata map[string]interface{}
-	Content  string
-	FilePath string
+	Frontmatter map[string]interface{} // tags, created, modified, path
+	Content     string
+	FilePath    string
 }
 
-// New creates a new article with default metadata
+// New creates a new article with default timestamps
 func New(content string) *Article {
 	return &Article{
-		Metadata: map[string]interface{}{
+		Frontmatter: map[string]interface{}{
 			"created":  time.Now().Format(time.RFC3339),
 			"modified": time.Now().Format(time.RFC3339),
 		},
@@ -31,7 +31,7 @@ func New(content string) *Article {
 // Parse parses article from markdown with YAML frontmatter
 func Parse(data []byte) (*Article, error) {
 	article := &Article{
-		Metadata: make(map[string]interface{}),
+		Frontmatter: make(map[string]interface{}),
 	}
 
 	// Check for frontmatter
@@ -50,13 +50,12 @@ func Parse(data []byte) (*Article, error) {
 	}
 
 	if endIdx == -1 {
-		// Malformed frontmatter
 		return nil, fmt.Errorf("malformed frontmatter: no closing ---")
 	}
 
 	// Parse YAML frontmatter
 	frontmatter := data[4 : 4+endIdx]
-	if err := yaml.Unmarshal(frontmatter, &article.Metadata); err != nil {
+	if err := yaml.Unmarshal(frontmatter, &article.Frontmatter); err != nil {
 		return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
 	}
 
@@ -73,26 +72,16 @@ func Parse(data []byte) (*Article, error) {
 func (a *Article) Serialize() ([]byte, error) {
 	var buf bytes.Buffer
 
-	// Preserve created timestamp if exists, otherwise set it
-	if _, exists := a.Metadata["created"]; !exists {
-		a.Metadata["created"] = time.Now().Format(time.RFC3339)
-	}
-
-	// Always update modified timestamp
-	a.Metadata["modified"] = time.Now().Format(time.RFC3339)
-
-	// Write frontmatter if metadata exists
-	if len(a.Metadata) > 0 {
+	if len(a.Frontmatter) > 0 {
 		buf.WriteString("---\n")
-		yamlData, err := yaml.Marshal(a.Metadata)
+		yamlData, err := yaml.Marshal(a.Frontmatter)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+			return nil, fmt.Errorf("failed to marshal frontmatter: %w", err)
 		}
 		buf.Write(yamlData)
 		buf.WriteString("---\n")
 	}
 
-	// Write content
 	buf.WriteString(a.Content)
 
 	return buf.Bytes(), nil
@@ -121,18 +110,15 @@ func (a *Article) ParseSections() []Section {
 
 	for i, line := range lines {
 		if matches := headingRegex.FindStringSubmatch(line); matches != nil {
-			// Found a heading
 			level := len(matches[1])
 			heading := strings.TrimSpace(matches[2])
 
-			// Save previous section if exists
 			if currentSection.Heading != "" || i > 0 {
 				currentSection.End = i
 				currentSection.Content = strings.Join(lines[currentSection.Start:currentSection.End], "\n")
 				sections = append(sections, currentSection)
 			}
 
-			// Start new section
 			currentSection = Section{
 				Heading: heading,
 				Level:   level,
@@ -182,7 +168,6 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	contentStartsWithHeading := false
 	if len(newContentLines) > 0 {
 		if matches := headingRegex.FindStringSubmatch(newContentLines[0]); matches != nil {
-			// Extract heading text from new content
 			newContentHeading := strings.TrimSpace(matches[2])
 			if newContentHeading == heading {
 				contentStartsWithHeading = true
@@ -190,28 +175,20 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 		}
 	}
 
-	// Build new content with updated section
 	var newLines []string
 	newLines = append(newLines, lines[:section.Start]...)
 
-	// Only add existing heading if new content doesn't start with it
 	if !contentStartsWithHeading {
-		// Add heading line
 		newLines = append(newLines, lines[section.Start])
-		// Blank line after heading
 		newLines = append(newLines, "")
 	}
 
-	// Add new content (replacing old section body)
 	newLines = append(newLines, newContent)
 
-	// Add blank line before next section if needed
 	if section.End < len(lines) && !strings.HasSuffix(newContent, "\n") {
 		newLines = append(newLines, "")
 	}
 
-	// Skip old section body (lines[section.Start+1 : section.End])
-	// Add rest of document
 	if section.End < len(lines) {
 		newLines = append(newLines, lines[section.End:]...)
 	}
@@ -235,11 +212,9 @@ func (a *Article) DeleteSection(heading string) error {
 		newLines = append(newLines, lines[section.End:]...)
 	}
 
-	// Trim trailing newlines from remaining content
 	for len(newLines) > 0 && strings.TrimSpace(newLines[len(newLines)-1]) == "" {
 		newLines = newLines[:len(newLines)-1]
 	}
-	// Re-add single trailing newline
 	if len(newLines) > 0 {
 		newLines = append(newLines, "")
 	}
@@ -256,7 +231,6 @@ func (a *Article) AppendToSection(heading, content string) error {
 
 	lines := strings.Split(a.Content, "\n")
 
-	// Find insertion point (before next heading or end)
 	insertIdx := section.End
 
 	var newLines []string
