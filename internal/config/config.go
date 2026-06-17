@@ -16,9 +16,7 @@ import (
 type BackendType string
 
 const (
-	BackendFiles  BackendType = "files"
 	BackendSQLite BackendType = "sqlite"
-	BackendPgSQL  BackendType = "pgsql"
 	BackendRqlite BackendType = "rqlite"
 )
 
@@ -28,7 +26,6 @@ type WikiConfig struct {
 	// Defaults to <GLOW_DATA>/<name> if empty.
 	DataPath string        `yaml:"data_path,omitempty"`
 	Backend  BackendType   `yaml:"backend"`
-	PgSQL    *PgSQLConfig  `yaml:"pgsql,omitempty"`
 	Rqlite   *RqliteConfig `yaml:"rqlite,omitempty"`
 }
 
@@ -60,8 +57,7 @@ func (r *RqliteConfig) ConnString() string {
 
 	var params []string
 	params = append(params, "level="+level)
-	// ponytail: always disable discovery — it breaks behind reverse proxies/LBs.
-	// To re-enable, add an EnableDiscovery bool field later.
+	// Always disable cluster discovery — breaks behind reverse proxies/LBs.
 	params = append(params, "disableClusterDiscovery=true")
 	query := ""
 	if len(params) > 0 {
@@ -78,30 +74,6 @@ func (r *RqliteConfig) ConnString() string {
 	}
 	url = strings.TrimRight(url, "/")
 	return scheme + "://" + userinfo + url + "/" + query
-}
-
-// PgSQLConfig holds PostgreSQL connection parameters.
-type PgSQLConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port,omitempty"`
-	DBName   string `yaml:"dbname"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	SSLMode  string `yaml:"sslmode,omitempty"`
-}
-
-// DSN converts PgSQLConfig to a lib/pq connection string.
-func (p *PgSQLConfig) DSN() string {
-	sslmode := p.SSLMode
-	if sslmode == "" {
-		sslmode = "disable"
-	}
-	dsn := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=%s",
-		p.Host, p.DBName, p.User, p.Password, sslmode)
-	if p.Port != 0 {
-		dsn += fmt.Sprintf(" port=%d", p.Port)
-	}
-	return dsn
 }
 
 // AppConfig is the top-level glow.yaml structure.
@@ -224,8 +196,8 @@ func CreateWiki(wikiName string, wc *WikiConfig) error {
 		dataPath = filepath.Join(base, wikiName)
 	}
 
-	// ponytail: remote backends (rqlite, pgsql) store nothing locally — skip the empty dir.
-	isLocal := wc.Backend == BackendFiles || wc.Backend == BackendSQLite || wc.Backend == ""
+	// Remote backends (rqlite) store nothing locally — skip the empty dir.
+	isLocal := wc.Backend == BackendSQLite || wc.Backend == ""
 	if isLocal {
 		if err := os.MkdirAll(dataPath, 0755); err != nil {
 			return fmt.Errorf("failed to create wiki data directory: %w", err)
@@ -356,9 +328,6 @@ func DiscoverWikis() ([]DiscoveredWiki, error) {
 func detectBackend(dir string) BackendType {
 	if _, err := os.Stat(filepath.Join(dir, "articles.db")); err == nil {
 		return BackendSQLite
-	}
-	if info, err := os.Stat(filepath.Join(dir, "articles")); err == nil && info.IsDir() {
-		return BackendFiles
 	}
 	return ""
 }

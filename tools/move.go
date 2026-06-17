@@ -3,7 +3,6 @@ package tools
 import (
 	"fmt"
 
-	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -24,18 +23,6 @@ func runMove(cmd *cobra.Command, args []string) error {
 	return withStore(wikiName, func(store storage.Store) error {
 		if err := store.Move(oldName, newName); err != nil {
 			return err
-		}
-		art, err := store.Read(newName)
-		if err != nil {
-			return err
-		}
-		if err := withIndex(wikiName, func(idx *index.Index) error {
-			if err := idx.DeleteArticle(oldName); err != nil {
-				return err
-			}
-			return idx.IndexArticle(newName, art)
-		}); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
 		}
 		fmt.Printf("Moved article: %s -> %s\n", oldName, newName)
 		return nil

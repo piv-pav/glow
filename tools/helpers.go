@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/config"
-	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -17,24 +15,6 @@ import (
 // wikiNameFrom returns the wiki name from the persistent --wiki flag.
 func wikiNameFrom(cmd *cobra.Command) string {
 	return cmd.Flag("wiki").Value.String()
-}
-
-// withIndex opens index, executes function, guarantees cleanup.
-// No-op for non-files backends (they have native search).
-func withIndex(wikiName string, fn func(*index.Index) error) error {
-	cfg, err := config.GetWikiConfig(wikiName)
-	if err != nil {
-		return err
-	}
-	if cfg != nil && cfg.Backend != config.BackendFiles {
-		return nil
-	}
-	idx, err := index.New(wikiName)
-	if err != nil {
-		return fmt.Errorf("failed to open index: %w", err)
-	}
-	defer idx.Close()
-	return fn(idx)
 }
 
 // withStore opens the Store for wikiName and runs fn, closing on return.
@@ -67,11 +47,6 @@ func modifyArticle(wikiName, name string, modify func(*article.Article) error, s
 		return err
 	}
 
-	if err := withIndex(wikiName, func(idx *index.Index) error {
-		return idx.UpdateArticle(name, art)
-	}); err != nil {
-		return fmt.Errorf("failed to update index: %w", err)
-	}
 	fmt.Println(successMsg)
 	return nil
 }

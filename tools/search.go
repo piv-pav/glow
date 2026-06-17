@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -54,31 +53,22 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Try native DB search first; fall back to Bleve for files backend
 	store, err := storage.New(wikiName)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
 
-	if searcher, ok := store.(storage.Searcher); ok {
-		out, err := searcher.Search(queryStr, filters, searchLimit)
-		if err != nil {
-			return err
-		}
-		printStorageResults(out)
-		return nil
+	searcher, ok := store.(storage.Searcher)
+	if !ok {
+		return fmt.Errorf("backend does not support search")
 	}
-
-	// Files backend — use Bleve
-	return withIndex(wikiName, func(idx *index.Index) error {
-		out, err := idx.Search(queryStr, filters, searchLimit)
-		if err != nil {
-			return err
-		}
-		printBleveResults(out)
-		return nil
-	})
+	out, err := searcher.Search(queryStr, filters, searchLimit)
+	if err != nil {
+		return err
+	}
+	printStorageResults(out)
+	return nil
 }
 
 func printStorageResults(out *storage.SearchOutput) {
@@ -98,28 +88,6 @@ func printStorageResults(out *storage.SearchOutput) {
 		}
 		if len(r.Tags) > 0 {
 			fmt.Printf("   [tags: %s]\n", strings.Join(r.Tags, ", "))
-		}
-		fmt.Println()
-	}
-}
-
-func printBleveResults(out *index.SearchOutput) {
-	if len(out.Results) == 0 {
-		fmt.Println("No results found")
-		return
-	}
-	if out.Total > len(out.Results) {
-		fmt.Printf("Found %d results (showing top %d):\n\n", out.Total, len(out.Results))
-	} else {
-		fmt.Printf("Found %d results:\n\n", out.Total)
-	}
-	for i, r := range out.Results {
-		fmt.Printf("%d. %s\n", i+1, r.Name)
-		if r.Snippet != "" {
-			fmt.Printf("   %s\n", r.Snippet)
-		}
-		if tags, ok := r.Fields["tags"].(string); ok && tags != "" {
-			fmt.Printf("   [tags: %s]\n", tags)
 		}
 		fmt.Println()
 	}

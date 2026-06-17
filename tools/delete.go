@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -37,11 +36,6 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	return withStore(wikiName, func(store storage.Store) error {
 		if err := store.Delete(name); err != nil {
 			return err
-		}
-		if err := withIndex(wikiName, func(idx *index.Index) error {
-			return idx.DeleteArticle(name)
-		}); err != nil {
-			return fmt.Errorf("failed to remove from index: %w", err)
 		}
 		fmt.Printf("Deleted article: %s\n", name)
 		return nil

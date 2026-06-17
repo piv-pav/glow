@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
@@ -52,11 +51,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	return withStore(wikiName, func(store storage.Store) error {
 		if err := store.Create(name, art); err != nil {
 			return err
-		}
-		if err := withIndex(wikiName, func(idx *index.Index) error {
-			return idx.IndexArticle(name, art)
-		}); err != nil {
-			return fmt.Errorf("failed to index article: %w", err)
 		}
 		fmt.Printf("Created article: %s\n", name)
 		return nil
