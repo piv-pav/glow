@@ -96,7 +96,6 @@ glow wiki-delete mywork
 glow export default /tmp/backup.json
 glow import work /tmp/backup.json
 ```
-
 ## Mandatory Rules
 
 - **Tagging**: Every article MUST have tags. Use `--tag` on create/update.

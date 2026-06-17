@@ -5,13 +5,13 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 ## Features
 
 - 📝 **Markdown Articles** - Store articles with YAML frontmatter metadata
-- 🔍 **Full-Text Search** - Native FTS5 (SQLite), tsvector (PostgreSQL), or Bleve (files)
+- 🔍 **Full-Text Search** - FTS5 with BM25 ranking
 - 🏷️ **Tagging** - Add/remove tags for organization and search
 - 📁 **Nested Folders** - Organize articles in hierarchical structure
 - ✂️ **Section Editing** - Update specific sections of articles
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
-- 💾 **Multiple Backends** - SQLite (default), PostgreSQL, rqlite, or plain files
-- 📦 **Export/Import** - Migrate articles between wikis and backends
+- 💾 **SQLite + rqlite** - Local file or distributed cluster
+- 📦 **Export/Import** - Migrate articles between wikis
 
 ## Installation
 
@@ -160,8 +160,7 @@ glow init work         # creates named wiki
 glow wiki-create work
 
 # Delete a wiki
-glow wiki-delete work        # files/sqlite: removes data + config
-glow wiki-delete shared      # pgsql: removes config only
+glow wiki-delete work
 
 # List all wikis
 glow wiki-list
@@ -170,10 +169,7 @@ glow wiki-list
 glow -w work list
 glow -w personal create "notes" --content "Notes"
 
-# Rebuild index (files backend only)
-glow rebuild
-
-# Export/Import between backends
+# Export/Import
 glow export default /tmp/backup.json
 glow import work /tmp/backup.json
 ```
@@ -208,14 +204,12 @@ Your markdown content here...
 
 ## Data Storage
 
-Glow supports four storage backends:
+Glow supports two storage backends:
 
 | Backend | Search | Best for |
 |---------|--------|----------|
 | **SQLite** (default) | FTS5 | Single-machine, fast, zero config |
-| **PostgreSQL** | tsvector + GIN | Shared/remote access, large wikis |
 | **rqlite** | FTS5 | Distributed, offline reads, cluster |
-| **Files** | Bleve index | Human-readable, git-friendly |
 
 Select backend during `glow init` or set in `~/.config/glow/glow.yaml`:
 
@@ -223,14 +217,6 @@ Select backend during `glow init` or set in `~/.config/glow/glow.yaml`:
 wikis:
   default:
     backend: sqlite
-  shared:
-    backend: pgsql
-    pgsql:
-      host: localhost
-      port: 5432
-      dbname: glow
-      user: glow
-      password: secret
   distributed:
     backend: rqlite
     rqlite:
@@ -238,8 +224,6 @@ wikis:
       user: glow
       password: secret
       level: weak          # none|weak|strong
-  notes:
-    backend: files
 ```
 
 By default, data is stored in XDG-compliant directories:
@@ -259,16 +243,9 @@ glow list
 
 ```
 ~/Library/Application Support/glow/wiki/
-├── default/
-│   └── articles.db          # SQLite backend
-├── notes/
-│   ├── articles/            # Files backend
-│   │   ├── article1.md
-│   │   └── projects/
-│   │       └── glow.md
-│   └── index.bleve/         # Bleve index (files only)
-└── work/
-    └── articles.db
+├── default.db
+├── notes.db
+└── work.db
 ```
 
 ## Search Syntax
@@ -311,8 +288,7 @@ glow/
 │   └── wiki.go
 ├── internal/
 │   ├── article/       # Article parsing, tags
-│   ├── storage/       # Backend implementations (sqlite, pgsql, files)
-│   ├── index/         # Bleve indexing (files backend)
+│   ├── storage/       # Backend implementations (sqlite, rqlite)
 │   └── config/        # Configuration, wiki registry
 └── tests/             # Integration tests
 ```
@@ -320,9 +296,8 @@ glow/
 ### Dependencies
 
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
-- [Bleve](https://github.com/blevesearch/bleve) - Full-text search (files backend)
 - [modernc.org/sqlite](https://modernc.org/sqlite) - Pure-Go SQLite driver (no CGO)
-- [lib/pq](https://github.com/lib/pq) - PostgreSQL driver
+- [gorqlite](https://github.com/rqlite/gorqlite) - rqlite driver
 - [go-yaml](https://gopkg.in/yaml.v3) - YAML parsing
 - [xdg](https://github.com/adrg/xdg) - XDG directories
 
