@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,25 +34,33 @@ type WikiConfig struct {
 
 // RqliteConfig holds rqlite connection parameters.
 type RqliteConfig struct {
-	URL      string `yaml:"url"`                // e.g. "http://localhost:4001" or "https://glow.example.com"
-	User     string `yaml:"user,omitempty"`
-	Password string `yaml:"password,omitempty"`
-	Level    string `yaml:"level,omitempty"` // none, weak, strong (default: weak)
+	URL              string `yaml:"url"`                // e.g. "http://localhost:4001" or "https://glow.example.com"
+	User             string `yaml:"user,omitempty"`
+	Password         string `yaml:"password,omitempty"`
+	Level            string `yaml:"level,omitempty"`             // none, weak, strong (default: weak)
+	DisableDiscovery bool   `yaml:"disable_discovery,omitempty"` // disable cluster discovery (use behind reverse proxy)
 }
 
 // ConnString builds the gorqlite connection string.
 func (r *RqliteConfig) ConnString() string {
 	userinfo := ""
 	if r.User != "" {
-		userinfo = r.User
+		userinfo = url.PathEscape(r.User)
 		if r.Password != "" {
-			userinfo += ":" + r.Password
+			userinfo += ":" + url.PathEscape(r.Password)
 		}
 		userinfo += "@"
 	}
-	query := ""
+	var params []string
 	if r.Level != "" {
-		query = "?level=" + r.Level
+		params = append(params, "level="+r.Level)
+	}
+	if r.DisableDiscovery {
+		params = append(params, "disableClusterDiscovery=true")
+	}
+	query := ""
+	if len(params) > 0 {
+		query = "?" + strings.Join(params, "&")
 	}
 	// Strip scheme, inject userinfo, re-add scheme.
 	url := r.URL
