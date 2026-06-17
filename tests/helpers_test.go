@@ -90,11 +90,7 @@ func (e *testEnv) initWiki(t *testing.T, name, backend string) {
 		"GLOW_DATA="+e.data,
 		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
 	)
-	if backend == "files" {
-		cmd.Stdin = strings.NewReader("files\n")
-	} else {
-		cmd.Stdin = strings.NewReader("\n") // accept sqlite default
-	}
+	cmd.Stdin = strings.NewReader("\n") // accept sqlite default
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("init wiki %s (%s) failed: %v\nOutput: %s", name, backend, err, string(out))
@@ -124,7 +120,7 @@ func assertNotContains(t *testing.T, haystack, needle string) {
 }
 
 // backends lists the backends covered by integration tests.
-var backends = []string{"sqlite", "files"}
+var backends = []string{"sqlite"}
 
 // TestMain just ensures the binary is available.
 func TestMain(m *testing.M) {

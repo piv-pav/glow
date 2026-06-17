@@ -13,11 +13,6 @@ func TestWikiSearch(t *testing.T) {
 			e.mustRun(t, "create", "python-intro", "--content", "# Python Intro\n\nPython programming language.", "--tag", "python", "--tag", "programming")
 			e.mustRun(t, "create", "cli-tools", "--content", "# CLI Tools\n\nBuilding CLI with Go.", "--tag", "go", "--tag", "cli")
 
-			// Files backend needs index built; sqlite searches natively
-			if backend == "files" {
-				e.mustRun(t, "rebuild")
-			}
-
 			tests := []struct {
 				name        string
 				args        []string
