@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-06-17
+
+### Added
+- **Multi-backend storage**: SQLite (default), PostgreSQL, and file-based backends
+- **`glow init`**: Interactive wiki creation with backend selection (sqlite/pgsql/files)
+- **`glow wiki-delete`**: Remove a wiki from config (and local data for files/sqlite backends)
+- **PostgreSQL support**: Full-text search via tsvector + GIN index, `ts_rank` relevance ordering
+- **Auto-discovery**: On first run without config, discovers existing wikis in data directory and registers them automatically
+- **Wiki name validation**: Names must match `[a-zA-Z0-9][a-zA-Z0-9_-]*` — prevents path traversal
+- **Export/Import**: `glow export <wiki> <file>` and `glow import <wiki> <file>` for migration between backends
+- **Configuration file**: `~/.config/glow/glow.yaml` stores wiki registry and backend settings
+
+### Changed
+- **Bleve index only for files backend**: SQLite/PgSQL use native full-text search, no Bleve overhead (~2x faster writes)
+- **Search output**: Removed score display (not useful for AI consumers)
+- **`glow init`**: Defaults to wiki name "default" when no argument given
+
+### Refactored
+- **Storage layer deduplicated**: Extracted shared `sqlStore` base (Create/Read/Update/Delete/Move/List) — SQLite and PgSQL only differ in placeholder style and Search implementation
+- **Removed `NewSearcher` wrapper**: Search command type-asserts Store to Searcher directly
+- **`strings.Cut`** replaces manual filter parsing loop
+- **`filepath.Ext`** replaces `strings.HasSuffix` for file detection
+- **Pre-allocated slices** in index search (avoids repeated growth)
+- **sqlite.go**: 294 → 134 lines
+- **pgsql.go**: 279 → 128 lines
+
+### Performance (100 articles benchmark)
+| Operation | Files | SQLite | PgSQL |
+|-----------|-------|--------|-------|
+| CREATE 100 | 12.2s | 5.7s | 7.1s |
+| SEARCH 10 | 0.75s | 0.64s | 0.78s |
+| UPDATE 20 | 2.3s | 1.2s | 1.6s |
+| DELETE 100 | 8.0s | 5.5s | 6.9s |
+
 ## [0.7.1] - 2026-06-09
 
 ### Fixed

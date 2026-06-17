@@ -1,70 +1,34 @@
 package tests
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestWikiTags(t *testing.T) {
-	os.RemoveAll(testWikiData)
-	defer os.RemoveAll(testWikiData)
+	for _, backend := range backends {
+		t.Run(backend, func(t *testing.T) {
+			e := newEnv(t, backend)
+			e.mustRun(t, "create", "tag-test", "--content", "# Tag Test\n\nContent.", "--tag", "initial")
 
-	// Setup: create article with tags
-	articleName := "tag-test"
-	content := "---\ntags:\n  - initial\n---\n\n# Tag Test\n\nContent.\n"
+			// Add tag
+			e.mustRun(t, "update", "tag-test", "--tag", "added")
+			out, _ := e.run("read", "tag-test", "--raw")
+			assertContains(t, out, "initial")
+			assertContains(t, out, "added")
 
-	os.MkdirAll(filepath.Join(testWikiData, "default", "articles"), 0755)
-	err := os.WriteFile(getArticlePath(articleName), []byte(content), 0644)
-	if err != nil {
-		t.Fatalf("Failed to setup test article: %v", err)
-	}
+			// Remove tag
+			e.mustRun(t, "update", "tag-test", "--untag", "initial")
+			out, _ = e.run("read", "tag-test", "--raw")
+			assertNotContains(t, out, "initial")
+			assertContains(t, out, "added")
 
-	runWiki("rebuild")
-
-	// Test adding tags
-	_, err = runWiki("update", articleName, "--tag", "added")
-	if err != nil {
-		t.Fatalf("Failed to add tag: %v", err)
-	}
-
-	updated := readArticle(t, articleName)
-	if !strings.Contains(updated, "added") {
-		t.Error("Tag add failed")
-	}
-	if !strings.Contains(updated, "initial") {
-		t.Error("Original tag should remain")
-	}
-
-	// Test removing tags
-	_, err = runWiki("update", articleName, "--untag", "initial")
-	if err != nil {
-		t.Fatalf("Failed to remove tag: %v", err)
-	}
-
-	updated = readArticle(t, articleName)
-	if strings.Contains(updated, "initial") {
-		t.Error("Tag remove failed")
-	}
-	if !strings.Contains(updated, "added") {
-		t.Error("Other tags should remain")
-	}
-}
-
-func TestWikiCreateWithTags(t *testing.T) {
-	os.RemoveAll(testWikiData)
-	defer os.RemoveAll(testWikiData)
-
-	// Create with comma-separated tags
-	_, err := runWiki("create", "tag-create-test", "--content", "Hello", "--tag", "go,cli")
-	if err != nil {
-		t.Fatalf("Failed to create: %v", err)
-	}
-	t.Cleanup(func() { runWiki("delete", "tag-create-test") })
-
-	content := readArticle(t, "tag-create-test")
-	if !strings.Contains(content, "go") || !strings.Contains(content, "cli") {
-		t.Errorf("Expected both tags, got: %s", content)
+			// Tag deduplication
+			e.mustRun(t, "update", "tag-test", "--tag", "added")
+			out, _ = e.run("read", "tag-test", "--raw")
+			if strings.Count(out, "added") > 1 {
+				t.Errorf("tag 'added' duplicated in output:\n%s", out)
+			}
+		})
 	}
 }

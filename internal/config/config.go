@@ -4,130 +4,219 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/adrg/xdg"
+	"gopkg.in/yaml.v3"
 )
 
-// GetWikiBasePath returns base path for all wikis
-// Uses GLOW_DATA env var if set, otherwise XDG_DATA_HOME/glow/wiki
-func GetWikiBasePath() (string, error) {
-	if customPath := os.Getenv("GLOW_DATA"); customPath != "" {
-		return customPath, nil
-	}
+// BackendType identifies the storage backend.
+type BackendType string
 
-	basePath := filepath.Join(xdg.DataHome, "glow", "wiki")
-	if err := os.MkdirAll(basePath, 0755); err != nil {
-		return "", err
-	}
+const (
+	BackendFiles  BackendType = "files"
+	BackendSQLite BackendType = "sqlite"
+	BackendPgSQL  BackendType = "pgsql"
+)
 
-	return basePath, nil
+// WikiConfig holds per-wiki configuration.
+type WikiConfig struct {
+	// DataPath overrides the default data directory for this wiki.
+	// Defaults to <GLOW_DATA>/<name> if empty.
+	DataPath string      `yaml:"data_path,omitempty"`
+	Backend  BackendType `yaml:"backend"`
+	PgSQL    *PgSQLConfig  `yaml:"pgsql,omitempty"`
 }
 
-// GetWikiPath returns path for specific wiki
-// Does NOT auto-create, only returns path
+// PgSQLConfig holds PostgreSQL connection parameters.
+type PgSQLConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port,omitempty"`
+	DBName   string `yaml:"dbname"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	SSLMode  string `yaml:"sslmode,omitempty"`
+}
+
+// DSN converts PgSQLConfig to a lib/pq connection string.
+func (p *PgSQLConfig) DSN() string {
+	sslmode := p.SSLMode
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	dsn := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=%s",
+		p.Host, p.DBName, p.User, p.Password, sslmode)
+	if p.Port != 0 {
+		dsn += fmt.Sprintf(" port=%d", p.Port)
+	}
+	return dsn
+}
+
+// AppConfig is the top-level glow.yaml structure.
+type AppConfig struct {
+	Wikis map[string]*WikiConfig `yaml:"wikis"`
+}
+
+// GetConfigPath returns the path to glow.yaml.
+// Priority: GLOW_CONFIG env > XDG_CONFIG_HOME/glow/glow.yaml
+func GetConfigPath() string {
+	if p := os.Getenv("GLOW_CONFIG"); p != "" {
+		return p
+	}
+	return filepath.Join(xdg.ConfigHome, "glow", "glow.yaml")
+}
+
+// GetWikiBasePath returns the base directory for wiki data.
+// Priority: GLOW_DATA env > XDG_DATA_HOME/glow/wiki
+func GetWikiBasePath() (string, error) {
+	if p := os.Getenv("GLOW_DATA"); p != "" {
+		return p, nil
+	}
+	base := filepath.Join(xdg.DataHome, "glow", "wiki")
+	if err := os.MkdirAll(base, 0755); err != nil {
+		return "", err
+	}
+	return base, nil
+}
+
+// LoadConfig reads glow.yaml, returning an empty config if the file doesn't exist yet.
+func LoadConfig() (*AppConfig, error) {
+	path := GetConfigPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &AppConfig{Wikis: map[string]*WikiConfig{}}, nil
+		}
+		return nil, fmt.Errorf("failed to read config %s: %w", path, err)
+	}
+	var cfg AppConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+	if cfg.Wikis == nil {
+		cfg.Wikis = map[string]*WikiConfig{}
+	}
+	return &cfg, nil
+}
+
+// SaveConfig writes the config to glow.yaml (0600).
+func SaveConfig(cfg *AppConfig) error {
+	path := GetConfigPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("failed to create config dir: %w", err)
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	return os.WriteFile(path, data, 0600)
+}
+
+// GetWikiConfig returns the WikiConfig for wikiName, or nil if not registered.
+func GetWikiConfig(wikiName string) (*WikiConfig, error) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+	if wc, ok := cfg.Wikis[wikiName]; ok {
+		return wc, nil
+	}
+	return nil, nil
+}
+
+// GetWikiPath returns the data directory for a wiki.
 func GetWikiPath(wikiName string) (string, error) {
 	if wikiName == "" {
 		wikiName = "default"
 	}
-
-	basePath, err := GetWikiBasePath()
+	cfg, err := LoadConfig()
 	if err != nil {
 		return "", err
 	}
-
-	wikiPath := filepath.Join(basePath, wikiName)
-	return wikiPath, nil
+	if wc, ok := cfg.Wikis[wikiName]; ok && wc.DataPath != "" {
+		return wc.DataPath, nil
+	}
+	base, err := GetWikiBasePath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, wikiName), nil
 }
 
-// CreateWiki creates a new wiki directory structure
-func CreateWiki(wikiName string) error {
+var validWikiName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)
+
+// CreateWiki registers a new wiki in glow.yaml and creates its data directory.
+func CreateWiki(wikiName string, wc *WikiConfig) error {
 	if wikiName == "" {
 		return fmt.Errorf("wiki name cannot be empty")
 	}
+	if !validWikiName.MatchString(wikiName) {
+		return fmt.Errorf("invalid wiki name %q: use only letters, digits, hyphens, underscores", wikiName)
+	}
 
-	wikiPath, err := GetWikiPath(wikiName)
+	cfg, err := LoadConfig()
 	if err != nil {
 		return err
 	}
-
-	// Check if already exists
-	if _, err := os.Stat(wikiPath); err == nil {
+	if _, exists := cfg.Wikis[wikiName]; exists {
 		return fmt.Errorf("wiki already exists: %s", wikiName)
 	}
 
-	// Create wiki directories
-	articlesPath := filepath.Join(wikiPath, "articles")
-	if err := os.MkdirAll(articlesPath, 0755); err != nil {
-		return fmt.Errorf("failed to create wiki directories: %w", err)
+	// Resolve data path
+	dataPath := wc.DataPath
+	if dataPath == "" {
+		base, err := GetWikiBasePath()
+		if err != nil {
+			return err
+		}
+		dataPath = filepath.Join(base, wikiName)
 	}
 
-	return nil
+	if err := os.MkdirAll(dataPath, 0755); err != nil {
+		return fmt.Errorf("failed to create wiki data directory: %w", err)
+	}
+
+	cfg.Wikis[wikiName] = wc
+	return SaveConfig(cfg)
 }
 
-// EnsureWikiExists creates wiki if it doesn't exist (used for default)
-func EnsureWikiExists(wikiName string) error {
-	if wikiName == "" {
-		wikiName = "default"
+// WikiExists reports whether a wiki is registered in glow.yaml.
+func WikiExists(wikiName string) (bool, error) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return false, err
 	}
+	_, ok := cfg.Wikis[wikiName]
+	return ok, nil
+}
 
-	wikiPath, err := GetWikiPath(wikiName)
+// DeleteWiki removes a wiki from glow.yaml.
+func DeleteWiki(wikiName string) error {
+	cfg, err := LoadConfig()
 	if err != nil {
 		return err
 	}
-
-	// Create if doesn't exist
-	if _, err := os.Stat(wikiPath); os.IsNotExist(err) {
-		articlesPath := filepath.Join(wikiPath, "articles")
-		if err := os.MkdirAll(articlesPath, 0755); err != nil {
-			return fmt.Errorf("failed to create wiki directories: %w", err)
-		}
+	if _, ok := cfg.Wikis[wikiName]; !ok {
+		return fmt.Errorf("wiki not found: %s", wikiName)
 	}
-
-	return nil
+	delete(cfg.Wikis, wikiName)
+	return SaveConfig(cfg)
 }
 
-// WikiExists checks if wiki exists
-func WikiExists(wikiName string) (bool, error) {
-	wikiPath, err := GetWikiPath(wikiName)
-	if err != nil {
-		return false, err
-	}
-
-	if _, err := os.Stat(wikiPath); os.IsNotExist(err) {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// ListWikis returns all available wikis
+// ListWikis returns all wiki names from glow.yaml.
 func ListWikis() ([]string, error) {
-	basePath, err := GetWikiBasePath()
+	cfg, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
-
-	entries, err := os.ReadDir(basePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []string{}, nil
-		}
-		return nil, err
+	names := make([]string, 0, len(cfg.Wikis))
+	for name := range cfg.Wikis {
+		names = append(names, name)
 	}
-
-	var wikis []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			wikis = append(wikis, entry.Name())
-		}
-	}
-
-	return wikis, nil
+	return names, nil
 }
 
-// GetArticlesPath returns articles directory for wiki
+// GetArticlesPath returns articles directory for file-based storage.
 func GetArticlesPath(wikiName string) (string, error) {
 	wikiPath, err := GetWikiPath(wikiName)
 	if err != nil {
@@ -136,11 +225,84 @@ func GetArticlesPath(wikiName string) (string, error) {
 	return filepath.Join(wikiPath, "articles"), nil
 }
 
-// GetIndexPath returns bleve index path for wiki
+// GetIndexPath returns the bleve index path for a wiki.
 func GetIndexPath(wikiName string) (string, error) {
 	wikiPath, err := GetWikiPath(wikiName)
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(wikiPath, "index.bleve"), nil
+}
+
+// ConfigExists reports whether glow.yaml exists on disk.
+func ConfigExists() bool {
+	_, err := os.Stat(GetConfigPath())
+	return err == nil
+}
+
+// DiscoveredWiki represents a wiki found in the data directory without config.
+type DiscoveredWiki struct {
+	Name    string
+	Path    string
+	Backend BackendType
+}
+
+// DiscoverWikis scans the data directory for wiki directories not in config.
+// Detects backend by checking for articles.db (sqlite) or articles/ dir (files).
+func DiscoverWikis() ([]DiscoveredWiki, error) {
+	base, err := GetWikiBasePath()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var found []DiscoveredWiki
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if _, registered := cfg.Wikis[name]; registered {
+			continue
+		}
+		if !validWikiName.MatchString(name) {
+			continue
+		}
+
+		dir := filepath.Join(base, name)
+		backend := detectBackend(dir)
+		if backend == "" {
+			continue // empty or unrecognized directory
+		}
+
+		found = append(found, DiscoveredWiki{
+			Name:    name,
+			Path:    dir,
+			Backend: backend,
+		})
+	}
+	return found, nil
+}
+
+// detectBackend checks a wiki directory for known artifacts.
+func detectBackend(dir string) BackendType {
+	if _, err := os.Stat(filepath.Join(dir, "articles.db")); err == nil {
+		return BackendSQLite
+	}
+	if info, err := os.Stat(filepath.Join(dir, "articles")); err == nil && info.IsDir() {
+		return BackendFiles
+	}
+	return ""
 }

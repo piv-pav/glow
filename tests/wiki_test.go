@@ -1,84 +1,83 @@
 package tests
 
 import (
-	"os"
-	"strings"
 	"testing"
 )
 
 func TestWikiCreateWiki(t *testing.T) {
-	os.RemoveAll(testWikiData)
-	defer os.RemoveAll(testWikiData)
+	for _, backend := range backends {
+		t.Run(backend, func(t *testing.T) {
+			e := newEnv(t, backend)
 
-	// Create a new wiki
-	output, err := runWiki("wiki-create", "mywiki")
-	if err != nil {
-		t.Fatalf("wiki-create failed: %v\nOutput: %s", err, output)
-	}
-	if !strings.Contains(output, "Created wiki: mywiki") {
-		t.Errorf("Unexpected output: %s", output)
-	}
+			// Create a second wiki with same backend
+			e.initWiki(t, "otherwiki", backend)
+			out := e.mustRunGlobal(t, "wiki-list")
+			assertContains(t, out, "otherwiki")
 
-	// Create duplicate wiki
-	_, err = runWiki("wiki-create", "mywiki")
-	if err == nil {
-		t.Error("expected error on duplicate wiki creation")
-	}
+			// Duplicate wiki should fail
+			_, err := e.runGlobal("init", "otherwiki")
+			if err == nil {
+				t.Error("expected error on duplicate wiki creation")
+			}
 
-	// Articles in new wiki should be separate from default
-	_, err = runWiki("create", "test-article", "--content", "# Hello", "--wiki", "mywiki")
-	if err != nil {
-		t.Fatalf("create in mywiki failed: %v", err)
-	}
+			// Articles in named wiki are isolated from testwiki
+			e.mustRunGlobal(t, "--wiki", "otherwiki", "create", "isolated", "--content", "only in otherwiki")
 
-	// Should not appear in default wiki
-	output, err = runWiki("list")
-	if err != nil {
-		t.Fatalf("list failed: %v", err)
-	}
-	if strings.Contains(output, "test-article") {
-		t.Error("article in mywiki should not appear in default wiki list")
-	}
+			out = e.mustRun(t, "list")
+			assertNotContains(t, out, "isolated")
 
-	// Should appear in mywiki
-	output, err = runWiki("list", "--wiki", "mywiki")
-	if err != nil {
-		t.Fatalf("list --wiki mywiki failed: %v", err)
-	}
-	if !strings.Contains(output, "test-article") {
-		t.Errorf("article not found in mywiki: %s", output)
+			out = e.mustRunGlobal(t, "--wiki", "otherwiki", "list")
+			assertContains(t, out, "isolated")
+		})
 	}
 }
 
 func TestWikiListWikis(t *testing.T) {
-	os.RemoveAll(testWikiData)
-	defer os.RemoveAll(testWikiData)
+	for _, backend := range backends {
+		t.Run(backend, func(t *testing.T) {
+			e := newEnv(t, backend)
 
-	// Should have default wiki
-	output, err := runWiki("wiki-list")
-	if err != nil {
-		t.Fatalf("wiki-list failed: %v\nOutput: %s", err, output)
-	}
-	if !strings.Contains(output, "default") {
-		t.Errorf("Expected default wiki in list, got: %s", output)
-	}
+			for _, name := range []string{"docs", "notes"} {
+				e.initWiki(t, name, backend)
+			}
 
-	// Create additional wikis
-	for _, name := range []string{"docs", "notes"} {
-		_, err := runWiki("wiki-create", name)
-		if err != nil {
-			t.Fatalf("wiki-create %s failed: %v", name, err)
-		}
+			out := e.mustRunGlobal(t, "wiki-list")
+			for _, name := range []string{"testwiki", "docs", "notes"} {
+				assertContains(t, out, name)
+			}
+			assertContains(t, out, backend)
+		})
 	}
+}
 
-	output, err = runWiki("wiki-list")
-	if err != nil {
-		t.Fatalf("wiki-list failed: %v\nOutput: %s", err, output)
-	}
+func TestWikiExportImport(t *testing.T) {
+	for _, srcBackend := range backends {
+		for _, dstBackend := range backends {
+			t.Run(srcBackend+"_to_"+dstBackend, func(t *testing.T) {
+				src := newEnv(t, srcBackend)
+				src.mustRun(t, "create", "foo", "--content", "# Foo\n\nHello", "--tag", "test")
+				src.mustRun(t, "create", "bar", "--content", "# Bar\n\nWorld")
 
-	for _, name := range []string{"default", "docs", "notes"} {
-		if !strings.Contains(output, name) {
-			t.Errorf("Expected %s in wiki list, got: %s", name, output)
+				archive := t.TempDir() + "/export.tar.gz"
+				src.mustRunGlobal(t, "export", src.wiki, archive)
+
+				dst := newEnv(t, dstBackend)
+				dst.mustRunGlobal(t, "import", dst.wiki, archive)
+
+				out := dst.mustRun(t, "list")
+				assertContains(t, out, "foo")
+				assertContains(t, out, "bar")
+
+				out = dst.readArticle(t, "foo")
+				assertContains(t, out, "Hello")
+
+				// Re-import — duplicates skipped, not error
+				out, err := dst.runGlobal("import", dst.wiki, archive)
+				if err != nil {
+					t.Fatalf("re-import failed: %v\noutput: %s", err, out)
+				}
+				assertContains(t, out, "skipped")
+			})
 		}
 	}
 }

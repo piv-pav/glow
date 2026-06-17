@@ -76,6 +76,25 @@ glow update "article-name" --tag a,b --untag c
 ```bash
 glow move "old-name" "new-name"
 glow delete "article-name"
+glow delete "article-name" --section "Section Heading"
+```
+
+### Wiki Management
+```bash
+# List wikis
+glow wiki-list
+
+# Use a specific wiki
+glow -w work search "topic"
+glow -w work read "article"
+
+# Create/delete wikis
+glow init mywork
+glow wiki-delete mywork
+
+# Export/Import
+glow export default /tmp/backup.json
+glow import work /tmp/backup.json
 ```
 
 ## Mandatory Rules

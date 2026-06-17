@@ -11,7 +11,6 @@ import (
 // SearchResult represents a search result
 type SearchResult struct {
 	Name    string
-	Score   float64
 	Fields  map[string]interface{}
 	Snippet string
 }
@@ -48,6 +47,8 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 				return nil, fmt.Errorf("failed to list index fields: %w", err)
 			}
 		}
+
+		textQueries = make([]query.Query, 0, len(fields))
 		
 		for _, field := range fields {
 			if field == "_all" || field == "_id" || field == "_type" {
@@ -117,9 +118,8 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 	results := make([]SearchResult, 0, len(searchResult.Hits))
 	for _, hit := range searchResult.Hits {
 		result := SearchResult{
-			Name:     hit.ID,
-			Score:    hit.Score,
-			Fields:  hit.Fields,
+			Name:   hit.ID,
+			Fields: hit.Fields,
 		}
 
 		// Extract snippet from highlights

@@ -33,52 +33,50 @@ func runRead(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	store := storage.New(wikiName)
-
-	art, err := store.Read(name)
-	if err != nil {
-		return err
-	}
-
-	if readSections {
-		sections := art.ParseSections()
-		fmt.Printf("Sections in %s:\n\n", name)
-		for _, section := range sections {
-			if section.Heading == "" {
-				fmt.Printf("  (preamble)\n")
-			} else {
-				fmt.Printf("  %s %s\n", strings.Repeat("#", section.Level), section.Heading)
-			}
+	return withStore(wikiName, func(store storage.Store) error {
+		art, err := store.Read(name)
+		if err != nil {
+			return err
 		}
-		return nil
-	}
 
-	if readSection != "" {
-		section := art.FindSection(readSection)
-		if section == nil {
-			return fmt.Errorf("section not found: %s", readSection)
+		if readSections {
+			sections := art.ParseSections()
+			fmt.Printf("Sections in %s:\n\n", name)
+			for _, section := range sections {
+				if section.Heading == "" {
+					fmt.Printf("  (preamble)\n")
+				} else {
+					fmt.Printf("  %s %s\n", strings.Repeat("#", section.Level), section.Heading)
+				}
+			}
+			return nil
+		}
+
+		if readSection != "" {
+			section := art.FindSection(readSection)
+			if section == nil {
+				return fmt.Errorf("section not found: %s", readSection)
+			}
+			if readRaw {
+				fmt.Print(section.Content)
+			} else {
+				lines := strings.Split(section.Content, "\n")
+				if len(lines) > 1 {
+					fmt.Print(strings.Join(lines[1:], "\n"))
+				}
+			}
+			return nil
 		}
 
 		if readRaw {
-			fmt.Print(section.Content)
-		} else {
-			lines := strings.Split(section.Content, "\n")
-			if len(lines) > 1 {
-				fmt.Print(strings.Join(lines[1:], "\n"))
+			data, err := art.Serialize()
+			if err != nil {
+				return fmt.Errorf("failed to serialize article: %w", err)
 			}
+			fmt.Print(string(data))
+		} else {
+			fmt.Print(art.Content)
 		}
 		return nil
-	}
-
-	if readRaw {
-		data, err := art.Serialize()
-		if err != nil {
-			return fmt.Errorf("failed to serialize article: %w", err)
-		}
-		fmt.Print(string(data))
-	} else {
-		fmt.Print(art.Content)
-	}
-
-	return nil
+	})
 }
