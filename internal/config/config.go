@@ -34,8 +34,7 @@ type RqliteConfig struct {
 	URL              string `yaml:"url"`                // e.g. "http://localhost:4001" or "https://glow.example.com"
 	User             string `yaml:"user,omitempty"`
 	Password         string `yaml:"password,omitempty"`
-	Level            string `yaml:"level,omitempty"`             // none, weak, strong (default: weak)
-	DisableDiscovery bool   `yaml:"disable_discovery,omitempty"` // disable cluster discovery (use behind reverse proxy)
+	Level string `yaml:"level,omitempty"` // none, weak, strong (default: weak)
 }
 
 // ConnString builds the gorqlite connection string.
@@ -55,14 +54,8 @@ func (r *RqliteConfig) ConnString() string {
 		level = "weak"
 	}
 
-	var params []string
-	params = append(params, "level="+level)
 	// Always disable cluster discovery — breaks behind reverse proxies/LBs.
-	params = append(params, "disableClusterDiscovery=true")
-	query := ""
-	if len(params) > 0 {
-		query = "?" + strings.Join(params, "&")
-	}
+	query := "?level=" + level + "&disableClusterDiscovery=true"
 	// Strip scheme, inject userinfo, re-add scheme.
 	url := r.URL
 	scheme := "http"
@@ -243,24 +236,6 @@ func ListWikis() ([]string, error) {
 	return names, nil
 }
 
-// GetArticlesPath returns articles directory for file-based storage.
-func GetArticlesPath(wikiName string) (string, error) {
-	wikiPath, err := GetWikiPath(wikiName)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(wikiPath, "articles"), nil
-}
-
-// GetIndexPath returns the bleve index path for a wiki.
-func GetIndexPath(wikiName string) (string, error) {
-	wikiPath, err := GetWikiPath(wikiName)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(wikiPath, "index.bleve"), nil
-}
-
 // ConfigExists reports whether glow.yaml exists on disk.
 func ConfigExists() bool {
 	_, err := os.Stat(GetConfigPath())
@@ -275,7 +250,6 @@ type DiscoveredWiki struct {
 }
 
 // DiscoverWikis scans the data directory for wiki directories not in config.
-// Detects backend by checking for articles.db (sqlite) or articles/ dir (files).
 func DiscoverWikis() ([]DiscoveredWiki, error) {
 	base, err := GetWikiBasePath()
 	if err != nil {
