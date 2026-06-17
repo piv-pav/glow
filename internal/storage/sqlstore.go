@@ -172,19 +172,21 @@ func (s *sqlStore) buildSearchConditions(filters map[string]string, argStart int
 	return conditions, args, i
 }
 
-func (s *sqlStore) scanSearchResults(rows *sql.Rows) ([]SearchResult, error) {
-	var results []SearchResult
+func (s *sqlStore) scanSearchResults(rows *sql.Rows) (*SearchOutput, error) {
+	out := &SearchOutput{}
 	for rows.Next() {
 		var r SearchResult
 		var tagsStr string
 		var score float64 // scanned but discarded; used for ORDER BY in query
-		if err := rows.Scan(&r.Name, &tagsStr, &r.Snippet, &score); err != nil {
+		var total int
+		if err := rows.Scan(&r.Name, &tagsStr, &r.Snippet, &score, &total); err != nil {
 			return nil, err
 		}
 		if tagsStr != "" {
 			r.Tags = strings.Fields(tagsStr)
 		}
-		results = append(results, r)
+		out.Results = append(out.Results, r)
+		out.Total = total
 	}
-	return results, rows.Err()
+	return out, rows.Err()
 }

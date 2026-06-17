@@ -81,7 +81,7 @@ func pgsqlMigrate(db *sql.DB) error {
 }
 
 // Search implements Searcher using PostgreSQL tsvector + GIN index.
-func (s *PgSQLStorage) Search(query string, filters map[string]string, limit int) ([]SearchResult, error) {
+func (s *PgSQLStorage) Search(query string, filters map[string]string, limit int) (*SearchOutput, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -106,14 +106,15 @@ func (s *PgSQLStorage) Search(query string, filters map[string]string, limit int
 		sqlStr = fmt.Sprintf(`
 			SELECT name, tags,
 				ts_headline('english', content, websearch_to_tsquery('english', $%d), 'MaxFragments=1,MaxWords=20,MinWords=5') AS snippet,
-				ts_rank(tsv, websearch_to_tsquery('english', $%d)) AS score
+				ts_rank(tsv, websearch_to_tsquery('english', $%d)) AS score,
+				COUNT(*) OVER() AS total
 			FROM articles %s
 			ORDER BY score DESC
 			LIMIT $%d`, i, i, where, i+1)
 		args = append(args, tsQuery, limit)
 	} else {
 		sqlStr = fmt.Sprintf(`
-			SELECT name, tags, '' AS snippet, 0.0 AS score
+			SELECT name, tags, '' AS snippet, 0.0 AS score, COUNT(*) OVER() AS total
 			FROM articles %s
 			ORDER BY name
 			LIMIT $%d`, where, i)

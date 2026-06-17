@@ -15,8 +15,14 @@ type SearchResult struct {
 	Snippet string
 }
 
+// SearchOutput holds search results with total match count.
+type SearchOutput struct {
+	Results []SearchResult
+	Total   int
+}
+
 // Search searches the index with query and filters
-func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([]SearchResult, error) {
+func (i *Index) Search(queryStr string, filters map[string]string, limit int) (*SearchOutput, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -135,7 +141,7 @@ func (i *Index) Search(queryStr string, filters map[string]string, limit int) ([
 		results = append(results, result)
 	}
 
-	return results, nil
+	return &SearchOutput{Results: results, Total: int(searchResult.Total)}, nil
 }
 
 // parseQueryString extracts field:value filters from query string
@@ -172,6 +178,6 @@ func parseQueryString(queryStr string) (string, map[string]string) {
 }
 
 // SearchAll returns all documents (for listing)
-func (i *Index) SearchAll(limit int) ([]SearchResult, error) {
+func (i *Index) SearchAll(limit int) (*SearchOutput, error) {
 	return i.Search("", nil, limit)
 }

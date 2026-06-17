@@ -62,32 +62,36 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	defer store.Close()
 
 	if searcher, ok := store.(storage.Searcher); ok {
-		results, err := searcher.Search(queryStr, filters, searchLimit)
+		out, err := searcher.Search(queryStr, filters, searchLimit)
 		if err != nil {
 			return err
 		}
-		printStorageResults(results)
+		printStorageResults(out)
 		return nil
 	}
 
 	// Files backend — use Bleve
 	return withIndex(wikiName, func(idx *index.Index) error {
-		results, err := idx.Search(queryStr, filters, searchLimit)
+		out, err := idx.Search(queryStr, filters, searchLimit)
 		if err != nil {
 			return err
 		}
-		printBleveResults(results)
+		printBleveResults(out)
 		return nil
 	})
 }
 
-func printStorageResults(results []storage.SearchResult) {
-	if len(results) == 0 {
+func printStorageResults(out *storage.SearchOutput) {
+	if len(out.Results) == 0 {
 		fmt.Println("No results found")
 		return
 	}
-	fmt.Printf("Found %d results:\n\n", len(results))
-	for i, r := range results {
+	if out.Total > len(out.Results) {
+		fmt.Printf("Found %d results (showing top %d):\n\n", out.Total, len(out.Results))
+	} else {
+		fmt.Printf("Found %d results:\n\n", out.Total)
+	}
+	for i, r := range out.Results {
 		fmt.Printf("%d. %s\n", i+1, r.Name)
 		if r.Snippet != "" {
 			fmt.Printf("   %s\n", r.Snippet)
@@ -99,13 +103,17 @@ func printStorageResults(results []storage.SearchResult) {
 	}
 }
 
-func printBleveResults(results []index.SearchResult) {
-	if len(results) == 0 {
+func printBleveResults(out *index.SearchOutput) {
+	if len(out.Results) == 0 {
 		fmt.Println("No results found")
 		return
 	}
-	fmt.Printf("Found %d results:\n\n", len(results))
-	for i, r := range results {
+	if out.Total > len(out.Results) {
+		fmt.Printf("Found %d results (showing top %d):\n\n", out.Total, len(out.Results))
+	} else {
+		fmt.Printf("Found %d results:\n\n", out.Total)
+	}
+	for i, r := range out.Results {
 		fmt.Printf("%d. %s\n", i+1, r.Name)
 		if r.Snippet != "" {
 			fmt.Printf("   %s\n", r.Snippet)

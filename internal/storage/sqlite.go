@@ -90,7 +90,7 @@ func sqliteMigrate(db *sql.DB) error {
 }
 
 // Search implements Searcher using SQLite FTS5.
-func (s *SQLiteStorage) Search(query string, filters map[string]string, limit int) ([]SearchResult, error) {
+func (s *SQLiteStorage) Search(query string, filters map[string]string, limit int) (*SearchOutput, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -99,27 +99,31 @@ func (s *SQLiteStorage) Search(query string, filters map[string]string, limit in
 
 	var sqlStr string
 	if query != "" {
-		conditions = append(conditions, `a.rowid IN (SELECT rowid FROM articles_fts WHERE articles_fts MATCH ?)`)
 		// Join terms with OR so partial matches rank via BM25 instead of requiring all terms
 		ftsQuery := strings.Join(strings.Fields(query), " OR ")
-		args = append(args, ftsQuery)
 
-		where := "WHERE " + strings.Join(conditions, " AND ")
-		// bm25 weights: name=10, content=1, tags=5 (column order in FTS5 table)
+		// bm25 requires MATCH in the same query context — use JOIN with MATCH directly
+		var filterWhere string
+		if len(conditions) > 0 {
+			filterWhere = "AND " + strings.Join(conditions, " AND ")
+		}
 		sqlStr = `SELECT a.name, a.tags,
 			snippet(articles_fts, 1, '<b>', '</b>', '...', 20) AS snippet,
-			bm25(articles_fts, 10.0, 1.0, 5.0) AS score
+			bm25(articles_fts, 10.0, 1.0, 5.0) AS score,
+			(SELECT COUNT(*) FROM articles_fts WHERE articles_fts MATCH ?) AS total
 			FROM articles a
-			JOIN articles_fts ON articles_fts.rowid = a.rowid
-			` + where + `
+			JOIN articles_fts ON articles_fts.rowid = a.rowid AND articles_fts MATCH ?
+			WHERE 1=1 ` + filterWhere + `
 			ORDER BY score
 			LIMIT ?`
+		// Arg order: count_match, join_match, filter_args..., limit
+		args = append([]any{ftsQuery, ftsQuery}, args...)
 	} else {
 		where := ""
 		if len(conditions) > 0 {
 			where = "WHERE " + strings.Join(conditions, " AND ")
 		}
-		sqlStr = `SELECT a.name, a.tags, '' AS snippet, 0.0 AS score
+		sqlStr = `SELECT a.name, a.tags, '' AS snippet, 0.0 AS score, COUNT(*) OVER() AS total
 			FROM articles a ` + where + ` ORDER BY a.name LIMIT ?`
 	}
 	args = append(args, limit)

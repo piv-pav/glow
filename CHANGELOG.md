@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2026-06-17
+
+### Fixed
+- **Search ranking**: bm25() was returning 0.0 inside CTE (lost FTS context), making results effectively unranked. Now MATCH is in JOIN directly so field weights (name×10, tags×5, content×1) work correctly
+- **Search ranking (rqlite)**: Same CTE/bm25 fix applied
+
+### Added
+- **Search output**: Shows total matching results alongside limited output (e.g. "Found 34 results (showing top 10):")
+- All backends (SQLite, rqlite, PostgreSQL, Bleve) return total count via CTE subquery / window function / searchResult.Total
+
+### Changed
+- **Search**: All backends (SQLite, rqlite, PostgreSQL) now use `COUNT(*)` via CTE/window function to fetch total without extra query
+
 ## [0.8.5] - 2026-06-17
 
 ### Fixed
