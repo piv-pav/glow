@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-06-18
+
+### Breaking Changes
+- **Backends removed**: `files` and `pgsql` backends are gone. SQLite and rqlite only.
+- **Storage layout**: Wiki databases moved from `<data>/<name>/articles.db` to `<data>/<name>.db`. Existing wikis must be migrated via `glow export` / `glow import`.
+- **`rebuild` command removed**: Was only needed for the files/Bleve backend.
+- **`data_path` config key renamed to `db_path`**: Points directly to the `.db` file, not a directory.
+
+### Removed
+- `files` backend (plain markdown files + Bleve full-text index)
+- `pgsql` backend (PostgreSQL)
+- `internal/index/` package (Bleve) — 28 transitive dependencies dropped
+- `glow rebuild` command
+- Auto-discovery of existing wikis on startup
+
+### Changed
+- **Binary size**: 30 MB → 15 MB (−49%) — bleve alone accounted for half the binary
+- **Codebase**: 3,716 → 2,004 lines of Go (−46%)
+- **Storage**: flat `<name>.db` file per wiki, no per-wiki subdirectory
+- **`glow init`**: Now only offers `sqlite` and `rqlite` backends
+- **`glow wiki-delete`**: Uses `os.Remove` (single file) instead of `os.RemoveAll`
+
+### Refactored
+- `internal/storage/`: 7 files → 2 (`storage.go`, `sqlstore.go`)
+- `internal/article/tags.go` merged into `article.go`
+- `internal/config/`: removed `PgSQLConfig`, `BackendFiles`, `BackendPgSQL`, `DiscoverWikis`, `ConfigExists`, `GetArticlesPath`, `GetIndexPath`
+
 ## [0.8.7] - 2026-06-17
 
 ### Added
