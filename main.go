@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -48,7 +47,6 @@ func main() {
 
 // maybeDiscoverWikis checks for existing wiki data when no config file exists.
 // If wikis are found in the data directory, registers them automatically.
-// In interactive mode (TTY), asks for confirmation first.
 func maybeDiscoverWikis(cmd *cobra.Command, args []string) error {
 	if config.ConfigExists() {
 		return nil
@@ -59,25 +57,9 @@ func maybeDiscoverWikis(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Check if interactive (TTY)
-	interactive := false
-	if fi, _ := os.Stdin.Stat(); fi != nil && fi.Mode()&os.ModeCharDevice != 0 {
-		interactive = true
-	}
-
-	if interactive {
-		fmt.Fprintf(os.Stderr, "Found %d existing wiki(s) in data directory:\n", len(wikis))
-		for _, w := range wikis {
-			fmt.Fprintf(os.Stderr, "  %s [%s] %s\n", w.Name, w.Backend, w.Path)
-		}
-
-		r := bufio.NewReader(os.Stdin)
-		fmt.Fprint(os.Stderr, "\nAdd them to config? [Y/n]: ")
-		ans, _ := r.ReadString('\n')
-		ans = strings.ToLower(strings.TrimSpace(ans))
-		if ans != "" && ans != "y" && ans != "yes" {
-			return nil
-		}
+	fmt.Fprintf(os.Stderr, "Detected %d existing wiki(s), adding to config:\n", len(wikis))
+	for _, w := range wikis {
+		fmt.Fprintf(os.Stderr, "  + %s [%s]\n", w.Name, w.Backend)
 	}
 
 	cfg, err := config.LoadConfig()
@@ -90,9 +72,6 @@ func maybeDiscoverWikis(cmd *cobra.Command, args []string) error {
 	if err := config.SaveConfig(cfg); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Registered %d wiki(s) in %s\n", len(wikis), config.GetConfigPath())
-	if interactive {
-		fmt.Fprintln(os.Stderr)
-	}
+	fmt.Fprintf(os.Stderr, "Saved %s\n", config.GetConfigPath())
 	return nil
 }
