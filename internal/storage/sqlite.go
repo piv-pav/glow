@@ -103,12 +103,14 @@ func (s *SQLiteStorage) Search(query string, filters map[string]string, limit in
 		args = append(args, query)
 
 		where := "WHERE " + strings.Join(conditions, " AND ")
+		// bm25 weights: name=10, content=1, tags=5 (column order in FTS5 table)
 		sqlStr = `SELECT a.name, a.tags,
 			snippet(articles_fts, 1, '<b>', '</b>', '...', 20) AS snippet,
-			0.0 AS score
+			bm25(articles_fts, 10.0, 1.0, 5.0) AS score
 			FROM articles a
 			JOIN articles_fts ON articles_fts.rowid = a.rowid
 			` + where + `
+			ORDER BY score
 			LIMIT ?`
 	} else {
 		where := ""

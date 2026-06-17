@@ -51,13 +51,18 @@ func (r *RqliteConfig) ConnString() string {
 		}
 		userinfo += "@"
 	}
+
+	// Defaults: weak consistency + no cluster discovery (typical reverse-proxy setup).
+	level := r.Level
+	if level == "" {
+		level = "weak"
+	}
+
 	var params []string
-	if r.Level != "" {
-		params = append(params, "level="+r.Level)
-	}
-	if r.DisableDiscovery {
-		params = append(params, "disableClusterDiscovery=true")
-	}
+	params = append(params, "level="+level)
+	// ponytail: always disable discovery — it breaks behind reverse proxies/LBs.
+	// To re-enable, add an EnableDiscovery bool field later.
+	params = append(params, "disableClusterDiscovery=true")
 	query := ""
 	if len(params) > 0 {
 		query = "?" + strings.Join(params, "&")

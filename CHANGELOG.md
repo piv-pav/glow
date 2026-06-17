@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-06-17
+
+### Changed
+- **Search**: SQLite/rqlite results now ranked by relevance using `bm25()` with field weights (name ×10, tags ×5, content ×1)
+- **rqlite config**: `level: weak` and `disable_discovery: true` are now defaults — no longer needed in config
+
 ## [0.8.3] - 2026-06-17
 
 ### Added
