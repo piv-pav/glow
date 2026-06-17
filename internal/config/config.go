@@ -186,7 +186,6 @@ func CreateWiki(wikiName string, wc *WikiConfig) error {
 		return fmt.Errorf("wiki already exists: %s", wikiName)
 	}
 
-	// Resolve data path
 	dataPath := wc.DataPath
 	if dataPath == "" {
 		base, err := GetWikiBasePath()

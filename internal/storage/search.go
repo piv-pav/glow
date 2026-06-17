@@ -13,8 +13,7 @@ type SearchOutput struct {
 	Total   int
 }
 
-// Searcher is implemented by DB-backed stores that can search natively.
-// File-backed wikis fall back to Bleve.
+// Searcher is implemented by backends that support native full-text search.
 type Searcher interface {
 	Search(query string, filters map[string]string, limit int) (*SearchOutput, error)
 }

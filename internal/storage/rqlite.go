@@ -20,7 +20,6 @@ func NewRqliteStorage(url string) (*RqliteStorage, error) {
 		return nil, fmt.Errorf("failed to open rqlite connection: %w", err)
 	}
 
-	// Verify connectivity.
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("rqlite ping failed: %w", err)

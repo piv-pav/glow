@@ -12,7 +12,7 @@ import (
 // placeholder defines how a SQL backend generates parameter placeholders.
 type placeholder func(n int) string
 
-// sqlStore is the shared implementation for SQL-backed stores (sqlite, pgsql).
+// sqlStore is the shared SQL implementation for sqlite and rqlite.
 type sqlStore struct {
 	db *sql.DB
 	ph placeholder // returns $1/$2/... or ?/?/...
@@ -152,8 +152,6 @@ func (s *sqlStore) List() ([]string, error) {
 }
 
 // buildSearchConditions builds WHERE conditions and args from filters.
-// argStart is the starting placeholder number (1-based).
-// prefix is the table alias prefix (e.g. "a." or "").
 func (s *sqlStore) buildSearchConditions(filters map[string]string, argStart int, prefix string) ([]string, []interface{}, int) {
 	var conditions []string
 	var args []interface{}
@@ -222,7 +220,7 @@ func (s *sqlStore) searchFTS5(query string, filters map[string]string, limit int
 
 	var sqlStr string
 	if query != "" {
-		// Join terms with OR so partial matches rank via BM25 instead of requiring all terms
+		// Join terms with OR so partial matches rank via BM25
 		ftsQuery := strings.Join(strings.Fields(query), " OR ")
 
 		var filterWhere string

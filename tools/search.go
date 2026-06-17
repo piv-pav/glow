@@ -45,7 +45,6 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		filters[k] = v
 	}
 
-	// Parse embedded field:value tokens out of the query string
 	queryStr, embedded := parseEmbeddedFilters(queryStr)
 	for k, v := range embedded {
 		if _, exists := filters[k]; !exists {

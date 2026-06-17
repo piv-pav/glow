@@ -34,14 +34,11 @@ func Parse(data []byte) (*Article, error) {
 		Frontmatter: make(map[string]interface{}),
 	}
 
-	// Check for frontmatter
 	if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
-		// No frontmatter, treat all as content
 		article.Content = string(data)
 		return article, nil
 	}
 
-	// Find end of frontmatter
 	endDelim := []byte("\n---\n")
 	endIdx := bytes.Index(data[4:], endDelim)
 	if endIdx == -1 {
@@ -53,13 +50,11 @@ func Parse(data []byte) (*Article, error) {
 		return nil, fmt.Errorf("malformed frontmatter: no closing ---")
 	}
 
-	// Parse YAML frontmatter
 	frontmatter := data[4 : 4+endIdx]
 	if err := yaml.Unmarshal(frontmatter, &article.Frontmatter); err != nil {
 		return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
 	}
 
-	// Extract content after frontmatter
 	contentStart := 4 + endIdx + len(endDelim)
 	if contentStart < len(data) {
 		article.Content = string(data[contentStart:])
@@ -127,7 +122,6 @@ func (a *Article) ParseSections() []Section {
 		}
 	}
 
-	// Add final section
 	currentSection.End = len(lines)
 	currentSection.Content = strings.Join(lines[currentSection.Start:currentSection.End], "\n")
 	sections = append(sections, currentSection)
@@ -140,7 +134,6 @@ func (a *Article) FindSection(heading string) *Section {
 	sections := a.ParseSections()
 	searchHeading := strings.ToLower(strings.TrimSpace(heading))
 
-	// Remove leading # if present
 	searchHeading = strings.TrimLeft(searchHeading, "# ")
 
 	for i := range sections {
@@ -163,7 +156,6 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	lines := strings.Split(a.Content, "\n")
 	headingRegex := regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
 
-	// Check if newContent starts with the same heading
 	newContentLines := strings.Split(strings.TrimSpace(newContent), "\n")
 	contentStartsWithHeading := false
 	if len(newContentLines) > 0 {
