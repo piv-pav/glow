@@ -11,12 +11,13 @@ import (
 	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var wikiInitCmd = &cobra.Command{
 	Use:   "init [name]",
 	Short: "Create a new wiki (interactive)",
-	Long:  `Create a new wiki and configure its storage backend (sqlite or pgsql).`,
+	Long:  `Create a new wiki and configure its storage backend (sqlite, pgsql, rqlite, or files).`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  runWikiInit,
 }
@@ -61,7 +62,7 @@ func runWikiInit(cmd *cobra.Command, args []string) error {
 
 	r := bufio.NewReader(os.Stdin)
 
-	fmt.Print("Storage backend [sqlite/pgsql/files] (default: sqlite): ")
+	fmt.Print("Storage backend [sqlite/pgsql/rqlite/files] (default: sqlite): ")
 	backendStr, _ := r.ReadString('\n')
 	backendStr = strings.TrimSpace(strings.ToLower(backendStr))
 
@@ -75,6 +76,9 @@ func runWikiInit(cmd *cobra.Command, args []string) error {
 		}); err != nil {
 			return err
 		}
+	case "rqlite":
+		cfg.Backend = config.BackendRqlite
+		cfg.Rqlite = promptRqlite(r)
 	case "files":
 		cfg.Backend = config.BackendFiles
 	default:
@@ -93,8 +97,15 @@ func runWikiInit(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Created wiki: %s (backend: %s)\n", name, cfg.Backend)
-	wikiPath, _ := config.GetWikiPath(name)
-	fmt.Printf("Location: %s\n", wikiPath)
+	switch cfg.Backend {
+	case config.BackendRqlite:
+		fmt.Printf("Location: %s\n", cfg.Rqlite.URL)
+	case config.BackendPgSQL:
+		fmt.Printf("Location: %s@%s\n", cfg.PgSQL.DBName, cfg.PgSQL.Host)
+	default:
+		wikiPath, _ := config.GetWikiPath(name)
+		fmt.Printf("Location: %s\n", wikiPath)
+	}
 	return nil
 }
 
@@ -119,6 +130,40 @@ func ensureDatabase(r *bufio.Reader, dbname, host string, create func() (bool, e
 	return nil
 }
 
+// promptRqlite reads rqlite connection details interactively.
+// readPassword prints a prompt and reads a line without echo.
+// Falls back to normal stdin read when not a terminal.
+func readPassword(r *bufio.Reader, prompt string) string {
+	fmt.Print(prompt)
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		s, _ := r.ReadString('\n')
+		return strings.TrimSpace(s)
+	}
+	b, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+func promptRqlite(r *bufio.Reader) *config.RqliteConfig {
+	ask := func(prompt string) string {
+		fmt.Print(prompt)
+		s, _ := r.ReadString('\n')
+		return strings.TrimSpace(s)
+	}
+	url := ask("  URL (e.g. http://localhost:4001): ")
+	if url == "" {
+		url = "http://localhost:4001"
+	}
+	return &config.RqliteConfig{
+		URL:      url,
+		User:     ask("  User (optional): "),
+		Password: readPassword(r, "  Password (optional): "),
+	}
+}
+
 // promptPgSQL reads PgSQL connection details interactively.
 func promptPgSQL(r *bufio.Reader) *config.PgSQLConfig {
 	ask := func(prompt string) string {
@@ -134,7 +179,7 @@ func promptPgSQL(r *bufio.Reader) *config.PgSQLConfig {
 		Host:     host,
 		DBName:   ask("  Database name: "),
 		User:     ask("  User: "),
-		Password: ask("  Password: "),
+		Password: readPassword(r, "  Password: "),
 	}
 }
 
@@ -160,13 +205,29 @@ func runWikiList(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("Available wikis (%d):\n\n", len(wikis))
 	for _, wiki := range wikis {
-		wikiPath, _ := config.GetWikiPath(wiki)
 		cfg, _ := config.GetWikiConfig(wiki)
 		backend := "sqlite"
+		location := ""
 		if cfg != nil {
 			backend = string(cfg.Backend)
+			switch cfg.Backend {
+			case config.BackendRqlite:
+				if cfg.Rqlite != nil {
+					location = cfg.Rqlite.URL
+				}
+			case config.BackendPgSQL:
+				if cfg.PgSQL != nil {
+					location = cfg.PgSQL.Host
+					if cfg.PgSQL.Port != 0 {
+						location += fmt.Sprintf(":%d", cfg.PgSQL.Port)
+					}
+				}
+			}
 		}
-		fmt.Printf("  %s  [%s]\n    %s\n", wiki, backend, wikiPath)
+		if location == "" {
+			location, _ = config.GetWikiPath(wiki)
+		}
+		fmt.Printf("  %s  [%s]\n    %s\n", wiki, backend, location)
 	}
 	return nil
 }

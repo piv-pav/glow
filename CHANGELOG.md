@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2026-06-17
+
+### Added
+- **rqlite init**: `glow init` now offers rqlite as a backend option with interactive URL/user/password prompts
+- **Password masking**: Password input during `glow init` is masked (terminal echo disabled) for both pgsql and rqlite
+- **wiki-list locations**: `glow wiki-list` shows connection URLs for rqlite and pgsql backends instead of local paths
+
+### Changed
+- **Config**: Remote backends (rqlite, pgsql) no longer create empty local data directories on init
+
+### Refactored
+- **Deduplicated SQLite/rqlite**: Extracted shared FTS5 migration and BM25 search into `sqlStore` base (sqlite.go: -75, rqlite.go: -90, zero duplicated code paths)
+
 ## [0.8.6] - 2026-06-17
 
 ### Fixed

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"codeberg.org/pivpav/glow/internal/config"
 	_ "modernc.org/sqlite"
@@ -39,100 +38,18 @@ func NewSQLiteStorage(wikiName string) (*SQLiteStorage, error) {
 		}
 	}
 
-	if err := sqliteMigrate(db); err != nil {
+	s := &SQLiteStorage{sqlStore{db: db, ph: sqlitePH}}
+	if err := s.fts5Migrate(db); err != nil {
 		db.Close()
 		return nil, err
 	}
 
-	return &SQLiteStorage{sqlStore{db: db, ph: sqlitePH}}, nil
+	return s, nil
 }
 
 func sqlitePH(_ int) string { return "?" }
 
-func sqliteMigrate(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS articles (
-		name     TEXT PRIMARY KEY,
-		content  TEXT NOT NULL DEFAULT '',
-		meta     TEXT NOT NULL DEFAULT '{}',
-		tags     TEXT NOT NULL DEFAULT '',
-		created  TEXT NOT NULL,
-		modified TEXT NOT NULL
-	)`)
-	if err != nil {
-		return err
-	}
-	// FTS5 for full-text search over content + tags
-	_, err = db.Exec(`CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
-		name, content, tags,
-		content='articles', content_rowid='rowid'
-	)`)
-	if err != nil {
-		return err
-	}
-	// Keep FTS in sync via triggers
-	for _, trigger := range []string{
-		`CREATE TRIGGER IF NOT EXISTS articles_ai AFTER INSERT ON articles BEGIN
-			INSERT INTO articles_fts(rowid, name, content, tags) VALUES (new.rowid, new.name, new.content, new.tags);
-		END`,
-		`CREATE TRIGGER IF NOT EXISTS articles_ad AFTER DELETE ON articles BEGIN
-			INSERT INTO articles_fts(articles_fts, rowid, name, content, tags) VALUES('delete', old.rowid, old.name, old.content, old.tags);
-		END`,
-		`CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles BEGIN
-			INSERT INTO articles_fts(articles_fts, rowid, name, content, tags) VALUES('delete', old.rowid, old.name, old.content, old.tags);
-			INSERT INTO articles_fts(rowid, name, content, tags) VALUES (new.rowid, new.name, new.content, new.tags);
-		END`,
-	} {
-		if _, err := db.Exec(trigger); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Search implements Searcher using SQLite FTS5.
+// Search implements Searcher using shared FTS5 logic.
 func (s *SQLiteStorage) Search(query string, filters map[string]string, limit int) (*SearchOutput, error) {
-	if limit <= 0 {
-		limit = 10
-	}
-
-	conditions, args, _ := s.buildSearchConditions(filters, 1, "a.")
-
-	var sqlStr string
-	if query != "" {
-		// Join terms with OR so partial matches rank via BM25 instead of requiring all terms
-		ftsQuery := strings.Join(strings.Fields(query), " OR ")
-
-		// bm25 requires MATCH in the same query context — use JOIN with MATCH directly
-		var filterWhere string
-		if len(conditions) > 0 {
-			filterWhere = "AND " + strings.Join(conditions, " AND ")
-		}
-		sqlStr = `SELECT a.name, a.tags,
-			snippet(articles_fts, 1, '<b>', '</b>', '...', 20) AS snippet,
-			bm25(articles_fts, 10.0, 1.0, 5.0) AS score,
-			(SELECT COUNT(*) FROM articles_fts WHERE articles_fts MATCH ?) AS total
-			FROM articles a
-			JOIN articles_fts ON articles_fts.rowid = a.rowid AND articles_fts MATCH ?
-			WHERE 1=1 ` + filterWhere + `
-			ORDER BY score
-			LIMIT ?`
-		// Arg order: count_match, join_match, filter_args..., limit
-		args = append([]any{ftsQuery, ftsQuery}, args...)
-	} else {
-		where := ""
-		if len(conditions) > 0 {
-			where = "WHERE " + strings.Join(conditions, " AND ")
-		}
-		sqlStr = `SELECT a.name, a.tags, '' AS snippet, 0.0 AS score, COUNT(*) OVER() AS total
-			FROM articles a ` + where + ` ORDER BY a.name LIMIT ?`
-	}
-	args = append(args, limit)
-
-	rows, err := s.db.Query(sqlStr, args...)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-	defer rows.Close()
-
-	return s.scanSearchResults(rows)
+	return s.searchFTS5(query, filters, limit)
 }

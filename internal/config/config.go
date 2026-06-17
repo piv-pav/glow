@@ -197,7 +197,7 @@ func GetWikiPath(wikiName string) (string, error) {
 
 var validWikiName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)
 
-// CreateWiki registers a new wiki in glow.yaml and creates its data directory.
+// CreateWiki registers a new wiki in glow.yaml and creates its data directory (for local backends only).
 func CreateWiki(wikiName string, wc *WikiConfig) error {
 	if wikiName == "" {
 		return fmt.Errorf("wiki name cannot be empty")
@@ -224,8 +224,12 @@ func CreateWiki(wikiName string, wc *WikiConfig) error {
 		dataPath = filepath.Join(base, wikiName)
 	}
 
-	if err := os.MkdirAll(dataPath, 0755); err != nil {
-		return fmt.Errorf("failed to create wiki data directory: %w", err)
+	// ponytail: remote backends (rqlite, pgsql) store nothing locally — skip the empty dir.
+	isLocal := wc.Backend == BackendFiles || wc.Backend == BackendSQLite || wc.Backend == ""
+	if isLocal {
+		if err := os.MkdirAll(dataPath, 0755); err != nil {
+			return fmt.Errorf("failed to create wiki data directory: %w", err)
+		}
 	}
 
 	cfg.Wikis[wikiName] = wc
