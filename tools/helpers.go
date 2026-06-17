@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"codeberg.org/pivpav/glow/internal/article"
+	"codeberg.org/pivpav/glow/internal/config"
 	"codeberg.org/pivpav/glow/internal/index"
 	"codeberg.org/pivpav/glow/internal/storage"
 	"github.com/spf13/cobra"
@@ -19,7 +20,15 @@ func wikiNameFrom(cmd *cobra.Command) string {
 }
 
 // withIndex opens index, executes function, guarantees cleanup.
+// No-op for non-files backends (they have native search).
 func withIndex(wikiName string, fn func(*index.Index) error) error {
+	cfg, err := config.GetWikiConfig(wikiName)
+	if err != nil {
+		return err
+	}
+	if cfg != nil && cfg.Backend != config.BackendFiles {
+		return nil
+	}
 	idx, err := index.New(wikiName)
 	if err != nil {
 		return fmt.Errorf("failed to open index: %w", err)
@@ -28,9 +37,23 @@ func withIndex(wikiName string, fn func(*index.Index) error) error {
 	return fn(idx)
 }
 
+// withStore opens the Store for wikiName and runs fn, closing on return.
+func withStore(wikiName string, fn func(storage.Store) error) error {
+	store, err := storage.New(wikiName)
+	if err != nil {
+		return fmt.Errorf("failed to open store: %w", err)
+	}
+	defer store.Close()
+	return fn(store)
+}
+
 // modifyArticle reads an article, applies a modification, saves, updates index, and prints successMsg.
 func modifyArticle(wikiName, name string, modify func(*article.Article) error, successMsg string) error {
-	store := storage.New(wikiName)
+	store, err := storage.New(wikiName)
+	if err != nil {
+		return fmt.Errorf("failed to open store: %w", err)
+	}
+	defer store.Close()
 	art, err := store.Read(name)
 	if err != nil {
 		return err
@@ -44,13 +67,13 @@ func modifyArticle(wikiName, name string, modify func(*article.Article) error, s
 		return err
 	}
 
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.UpdateArticle(name, art); err != nil {
-			return fmt.Errorf("failed to update index: %w", err)
-		}
-		fmt.Println(successMsg)
-		return nil
-	})
+	if err := withIndex(wikiName, func(idx *index.Index) error {
+		return idx.UpdateArticle(name, art)
+	}); err != nil {
+		return fmt.Errorf("failed to update index: %w", err)
+	}
+	fmt.Println(successMsg)
+	return nil
 }
 
 // readContent returns content from stdin or --content flag (with escape interpretation).

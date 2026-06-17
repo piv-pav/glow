@@ -21,26 +21,22 @@ func runMove(cmd *cobra.Command, args []string) error {
 	newName := args[1]
 	wikiName := wikiNameFrom(cmd)
 
-	store := storage.New(wikiName)
-
-	if err := store.Move(oldName, newName); err != nil {
-		return err
-	}
-
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.DeleteArticle(oldName); err != nil {
-			return fmt.Errorf("failed to remove old entry from index: %w", err)
+	return withStore(wikiName, func(store storage.Store) error {
+		if err := store.Move(oldName, newName); err != nil {
+			return err
 		}
-
 		art, err := store.Read(newName)
 		if err != nil {
 			return err
 		}
-
-		if err := idx.IndexArticle(newName, art); err != nil {
-			return fmt.Errorf("failed to index article with new name: %w", err)
+		if err := withIndex(wikiName, func(idx *index.Index) error {
+			if err := idx.DeleteArticle(oldName); err != nil {
+				return err
+			}
+			return idx.IndexArticle(newName, art)
+		}); err != nil {
+			return fmt.Errorf("failed to update index: %w", err)
 		}
-
 		fmt.Printf("Moved article: %s -> %s\n", oldName, newName)
 		return nil
 	})

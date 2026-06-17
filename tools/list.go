@@ -17,22 +17,19 @@ var listCmd = &cobra.Command{
 
 func runList(cmd *cobra.Command, args []string) error {
 	wikiName := wikiNameFrom(cmd)
-	store := storage.New(wikiName)
-
-	articles, err := store.List()
-	if err != nil {
-		return err
-	}
-
-	if len(articles) == 0 {
-		fmt.Printf("No articles in wiki '%s'\n", wikiName)
+	return withStore(wikiName, func(store storage.Store) error {
+		articles, err := store.List()
+		if err != nil {
+			return err
+		}
+		if len(articles) == 0 {
+			fmt.Printf("No articles in wiki '%s'\n", wikiName)
+			return nil
+		}
+		fmt.Printf("Articles in wiki '%s' (%d):\n\n", wikiName, len(articles))
+		for _, article := range articles {
+			fmt.Printf("  %s\n", article)
+		}
 		return nil
-	}
-
-	fmt.Printf("Articles in wiki '%s' (%d):\n\n", wikiName, len(articles))
-	for _, article := range articles {
-		fmt.Printf("  %s\n", article)
-	}
-
-	return nil
+	})
 }

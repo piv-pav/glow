@@ -11,22 +11,25 @@ import (
 	"codeberg.org/pivpav/glow/internal/config"
 )
 
-// Storage handles article file operations
-type Storage struct {
+// FileStorage handles article file operations.
+type FileStorage struct {
 	WikiName string
 }
 
-// New creates a new storage instance for a wiki
-func New(wikiName string) *Storage {
+// NewFileStorage creates a file-based storage instance for a wiki.
+func NewFileStorage(wikiName string) *FileStorage {
 	if wikiName == "" {
 		wikiName = "default"
 	}
-	return &Storage{WikiName: wikiName}
+	return &FileStorage{WikiName: wikiName}
 }
+
+// Close is a no-op for file storage (satisfies Store interface).
+func (s *FileStorage) Close() error { return nil }
 
 // articlePath returns full file path for article name
 // Supports nested paths like "folder/subfolder/article"
-func (s *Storage) articlePath(name string) (string, error) {
+func (s *FileStorage) articlePath(name string) (string, error) {
 	articlesPath, err := config.GetArticlesPath(s.WikiName)
 	if err != nil {
 		return "", err
@@ -43,13 +46,13 @@ func (s *Storage) articlePath(name string) (string, error) {
 }
 
 // ensureDir creates parent directories for article path
-func (s *Storage) ensureDir(articlePath string) error {
+func (s *FileStorage) ensureDir(articlePath string) error {
 	dir := filepath.Dir(articlePath)
 	return os.MkdirAll(dir, 0755)
 }
 
 // Create creates a new article
-func (s *Storage) Create(name string, article *article.Article) error {
+func (s *FileStorage) Create(name string, article *article.Article) error {
 	path, err := s.articlePath(name)
 	if err != nil {
 		return err
@@ -72,7 +75,7 @@ func (s *Storage) Create(name string, article *article.Article) error {
 }
 
 // Read reads an article
-func (s *Storage) Read(name string) (*article.Article, error) {
+func (s *FileStorage) Read(name string) (*article.Article, error) {
 	path, err := s.articlePath(name)
 	if err != nil {
 		return nil, err
@@ -96,7 +99,7 @@ func (s *Storage) Read(name string) (*article.Article, error) {
 }
 
 // Update updates an existing article
-func (s *Storage) Update(name string, article *article.Article) error {
+func (s *FileStorage) Update(name string, article *article.Article) error {
 	path, err := s.articlePath(name)
 	if err != nil {
 		return err
@@ -114,7 +117,7 @@ func (s *Storage) Update(name string, article *article.Article) error {
 }
 
 // Delete deletes an article
-func (s *Storage) Delete(name string) error {
+func (s *FileStorage) Delete(name string) error {
 	path, err := s.articlePath(name)
 	if err != nil {
 		return err
@@ -134,7 +137,7 @@ func (s *Storage) Delete(name string) error {
 }
 
 // Move renames/moves an article
-func (s *Storage) Move(oldName, newName string) error {
+func (s *FileStorage) Move(oldName, newName string) error {
 	oldPath, err := s.articlePath(oldName)
 	if err != nil {
 		return err
@@ -188,10 +191,14 @@ func (s *Storage) Move(oldName, newName string) error {
 }
 
 // List returns all article names in the wiki
-func (s *Storage) List() ([]string, error) {
+func (s *FileStorage) List() ([]string, error) {
 	articlesPath, err := config.GetArticlesPath(s.WikiName)
 	if err != nil {
 		return nil, err
+	}
+
+	if _, err := os.Stat(articlesPath); os.IsNotExist(err) {
+		return nil, nil
 	}
 
 	var articles []string
@@ -201,7 +208,7 @@ func (s *Storage) List() ([]string, error) {
 			return err
 		}
 
-		if !d.IsDir() && strings.HasSuffix(path, ".md") {
+		if !d.IsDir() && filepath.Ext(path) == ".md" {
 			relPath, err := filepath.Rel(articlesPath, path)
 			if err != nil {
 				return err
@@ -218,7 +225,7 @@ func (s *Storage) List() ([]string, error) {
 }
 
 // write writes article to file, updating timestamps
-func (s *Storage) write(path string, article *article.Article) error {
+func (s *FileStorage) write(path string, article *article.Article) error {
 	// Ensure created timestamp exists
 	if _, exists := article.Frontmatter["created"]; !exists {
 		article.Frontmatter["created"] = time.Now().Format(time.RFC3339)
@@ -235,13 +242,13 @@ func (s *Storage) write(path string, article *article.Article) error {
 }
 
 // normalizeArticleName removes .md extension and cleans path
-func (s *Storage) normalizeArticleName(name string) string {
+func (s *FileStorage) normalizeArticleName(name string) string {
 	name = strings.TrimSuffix(name, ".md")
 	return filepath.ToSlash(name)
 }
 
 // cleanupEmptyDirs removes empty parent directories up to articles root
-func (s *Storage) cleanupEmptyDirs(dir string) {
+func (s *FileStorage) cleanupEmptyDirs(dir string) {
 	articlesPath, err := config.GetArticlesPath(s.WikiName)
 	if err != nil {
 		return

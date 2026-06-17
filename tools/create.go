@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	createTags     []string
-	createContent  string
-	createStdin    bool
+	createTags    []string
+	createContent string
+	createStdin   bool
 )
 
 var createCmd = &cobra.Command{
@@ -45,18 +45,17 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	art := article.New(content)
-
 	if len(createTags) > 0 {
 		art.AddTags(createTags...)
 	}
 
-	store := storage.New(wikiName)
-	if err := store.Create(name, art); err != nil {
-		return err
-	}
-
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.IndexArticle(name, art); err != nil {
+	return withStore(wikiName, func(store storage.Store) error {
+		if err := store.Create(name, art); err != nil {
+			return err
+		}
+		if err := withIndex(wikiName, func(idx *index.Index) error {
+			return idx.IndexArticle(name, art)
+		}); err != nil {
 			return fmt.Errorf("failed to index article: %w", err)
 		}
 		fmt.Printf("Created article: %s\n", name)

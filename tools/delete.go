@@ -9,9 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	deleteSection string
-)
+var deleteSection string
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete [article-name]",
@@ -36,13 +34,13 @@ func runDelete(cmd *cobra.Command, args []string) error {
 		}, msg)
 	}
 
-	store := storage.New(wikiName)
-	if err := store.Delete(name); err != nil {
-		return err
-	}
-
-	return withIndex(wikiName, func(idx *index.Index) error {
-		if err := idx.DeleteArticle(name); err != nil {
+	return withStore(wikiName, func(store storage.Store) error {
+		if err := store.Delete(name); err != nil {
+			return err
+		}
+		if err := withIndex(wikiName, func(idx *index.Index) error {
+			return idx.DeleteArticle(name)
+		}); err != nil {
 			return fmt.Errorf("failed to remove from index: %w", err)
 		}
 		fmt.Printf("Deleted article: %s\n", name)

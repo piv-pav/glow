@@ -5,12 +5,13 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 ## Features
 
 - 📝 **Markdown Articles** - Store articles with YAML frontmatter metadata
-- 🔍 **Full-Text Search** - Powered by Bleve search engine
+- 🔍 **Full-Text Search** - Native FTS5 (SQLite), tsvector (PostgreSQL), or Bleve (files)
 - 🏷️ **Tagging** - Add/remove tags for organization and search
 - 📁 **Nested Folders** - Organize articles in hierarchical structure
 - ✂️ **Section Editing** - Update specific sections of articles
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
-- 🔧 **Index Management** - Rebuild search index if corrupted
+- 💾 **Multiple Backends** - SQLite (default), PostgreSQL, or plain files
+- 📦 **Export/Import** - Migrate articles between wikis and backends
 
 ## Installation
 
@@ -33,6 +34,12 @@ just build    # Runs tests then builds
 ## Quick Start
 
 ```bash
+# Initialize a wiki (defaults to "default" with sqlite backend)
+glow init
+
+# Or with a specific name
+glow init work
+
 # Create an article
 glow create "my-first-article" --content "# Hello
 
@@ -43,9 +50,6 @@ glow search "search term tag:go"
 
 # List all articles
 glow list
-
-# Create a new wiki
-glow wiki-create work
 
 # Use different wiki
 glow -w work create "work-notes" --content "Notes"
@@ -148,18 +152,30 @@ glow search "query" --filter=tag:go -l 20
 ### Wiki Management
 
 ```bash
+# Initialize wiki (interactive backend selection)
+glow init              # creates "default" wiki
+glow init work         # creates named wiki
+
+# Quick create (sqlite, non-interactive)
+glow wiki-create work
+
+# Delete a wiki
+glow wiki-delete work        # files/sqlite: removes data + config
+glow wiki-delete shared      # pgsql: removes config only
+
 # List all wikis
 glow wiki-list
-
-# Create new wiki
-glow wiki-create work
 
 # Use specific wiki
 glow -w work list
 glow -w personal create "notes" --content "Notes"
 
-# Rebuild index (if corrupted)
+# Rebuild index (files backend only)
 glow rebuild
+
+# Export/Import between backends
+glow export default /tmp/backup.json
+glow import work /tmp/backup.json
 ```
 
 ### Listing
@@ -192,6 +208,32 @@ Your markdown content here...
 
 ## Data Storage
 
+Glow supports three storage backends:
+
+| Backend | Search | Best for |
+|---------|--------|----------|
+| **SQLite** (default) | FTS5 | Single-machine, fast, zero config |
+| **PostgreSQL** | tsvector + GIN | Shared/remote access, large wikis |
+| **Files** | Bleve index | Human-readable, git-friendly |
+
+Select backend during `glow init` or set in `~/.config/glow/glow.yaml`:
+
+```yaml
+wikis:
+  default:
+    backend: sqlite
+  shared:
+    backend: pgsql
+    pgsql:
+      host: localhost
+      port: 5432
+      dbname: glow
+      user: glow
+      password: secret
+  notes:
+    backend: files
+```
+
 By default, data is stored in XDG-compliant directories:
 
 - **macOS**: `~/Library/Application Support/glow/wiki/`
@@ -210,17 +252,15 @@ glow list
 ```
 ~/Library/Application Support/glow/wiki/
 ├── default/
-│   ├── articles/
+│   └── articles.db          # SQLite backend
+├── notes/
+│   ├── articles/            # Files backend
 │   │   ├── article1.md
-│   │   ├── article2.md
 │   │   └── projects/
 │   │       └── glow.md
-│   └── index.bleve/
+│   └── index.bleve/         # Bleve index (files only)
 └── work/
-    ├── articles/
-    │   └── meetings/
-    │       └── 2026-05.md
-    └── index.bleve/
+    └── articles.db
 ```
 
 ## Search Syntax
@@ -253,6 +293,7 @@ glow/
 │   ├── append.go
 │   ├── create.go
 │   ├── delete.go
+│   ├── exportimport.go
 │   ├── helpers.go
 │   ├── list.go
 │   ├── move.go
@@ -261,17 +302,19 @@ glow/
 │   ├── update.go
 │   └── wiki.go
 ├── internal/
-│   ├── article/       # Article parsing, metadata
-│   ├── storage/       # File operations
-│   ├── index/         # Bleve indexing
-│   └── config/        # Path management
+│   ├── article/       # Article parsing, tags
+│   ├── storage/       # Backend implementations (sqlite, pgsql, files)
+│   ├── index/         # Bleve indexing (files backend)
+│   └── config/        # Configuration, wiki registry
 └── tests/             # Integration tests
 ```
 
 ### Dependencies
 
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
-- [Bleve](https://github.com/blevesearch/bleve) - Full-text search
+- [Bleve](https://github.com/blevesearch/bleve) - Full-text search (files backend)
+- [modernc.org/sqlite](https://modernc.org/sqlite) - Pure-Go SQLite driver (no CGO)
+- [lib/pq](https://github.com/lib/pq) - PostgreSQL driver
 - [go-yaml](https://gopkg.in/yaml.v3) - YAML parsing
 - [xdg](https://github.com/adrg/xdg) - XDG directories
 

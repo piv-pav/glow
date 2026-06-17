@@ -8,61 +8,129 @@ import (
 	"testing"
 )
 
-const testWikiData = "/tmp/glow-test-wiki"
-
-// TestMain sets up and tears down test environment
-func TestMain(m *testing.M) {
-	// Clean up any existing test data
-	os.RemoveAll(testWikiData)
-
-	// Run tests
-	code := m.Run()
-
-	// Clean up after tests
-	os.RemoveAll(testWikiData)
-
-	os.Exit(code)
+// testEnv holds isolated data and config directories for one test run.
+type testEnv struct {
+	data    string
+	config  string
+	wiki    string // default wiki name for this env
+	backend string
 }
 
-// runWiki executes wiki command with GLOW_DATA set to test directory
-func runWiki(args ...string) (string, error) {
-	cmd := exec.Command("glow", args...)
-	cmd.Env = append(os.Environ(), "GLOW_DATA="+testWikiData)
-
-	output, err := cmd.CombinedOutput()
-	return string(output), err
-}
-
-// getArticlePath returns full path to article file
-func getArticlePath(name string) string {
-	return filepath.Join(testWikiData, "default", "articles", name+".md")
-}
-
-// readArticle reads article content from file
-func readArticle(t *testing.T, name string) string {
+func newEnv(t *testing.T, backend string) *testEnv {
 	t.Helper()
-
-	path := getArticlePath(name)
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("Failed to read article %s: %v", name, err)
+	dir := t.TempDir()
+	e := &testEnv{
+		data:    filepath.Join(dir, "data"),
+		config:  filepath.Join(dir, "config"),
+		wiki:    "testwiki",
+		backend: backend,
 	}
-
-	return string(content)
+	e.initWiki(t, e.wiki, backend)
+	return e
 }
 
-// assertContains checks if haystack contains needle
+// run executes a glow command in this environment, defaulting --wiki to e.wiki.
+func (e *testEnv) run(args ...string) (string, error) {
+	// Inject --wiki if not already present
+	hasWiki := false
+	for _, a := range args {
+		if a == "--wiki" || a == "-w" {
+			hasWiki = true
+			break
+		}
+	}
+	if !hasWiki {
+		args = append([]string{"--wiki", e.wiki}, args...)
+	}
+	cmd := exec.Command("glow", args...)
+	cmd.Env = append(os.Environ(),
+		"GLOW_DATA="+e.data,
+		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
+	)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// runGlobal runs a command without injecting --wiki (for wiki-list, export, import, init).
+func (e *testEnv) runGlobal(args ...string) (string, error) {
+	cmd := exec.Command("glow", args...)
+	cmd.Env = append(os.Environ(),
+		"GLOW_DATA="+e.data,
+		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
+	)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// mustRun fails the test if the command errors.
+func (e *testEnv) mustRun(t *testing.T, args ...string) string {
+	t.Helper()
+	out, err := e.run(args...)
+	if err != nil {
+		t.Fatalf("glow %s failed: %v\nOutput: %s", strings.Join(args, " "), err, out)
+	}
+	return out
+}
+
+// mustRunGlobal fails the test if the global command errors.
+func (e *testEnv) mustRunGlobal(t *testing.T, args ...string) string {
+	t.Helper()
+	out, err := e.runGlobal(args...)
+	if err != nil {
+		t.Fatalf("glow %s failed: %v\nOutput: %s", strings.Join(args, " "), err, out)
+	}
+	return out
+}
+
+// initWiki creates a wiki with the given backend non-interactively.
+func (e *testEnv) initWiki(t *testing.T, name, backend string) {
+	t.Helper()
+	cmd := exec.Command("glow", "init", name)
+	cmd.Env = append(os.Environ(),
+		"GLOW_DATA="+e.data,
+		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
+	)
+	if backend == "files" {
+		cmd.Stdin = strings.NewReader("files\n")
+	} else {
+		cmd.Stdin = strings.NewReader("\n") // accept sqlite default
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("init wiki %s (%s) failed: %v\nOutput: %s", name, backend, err, string(out))
+	}
+}
+
+// readArticle reads article content via glow read (backend-agnostic).
+func (e *testEnv) readArticle(t *testing.T, name string) string {
+	t.Helper()
+	return e.mustRun(t, "read", name)
+}
+
+// assertContains fails if haystack doesn't contain needle.
 func assertContains(t *testing.T, haystack, needle string) {
 	t.Helper()
 	if !strings.Contains(haystack, needle) {
-		t.Errorf("Expected output to contain %q, got:\n%s", needle, haystack)
+		t.Errorf("expected output to contain %q\ngot:\n%s", needle, haystack)
 	}
 }
 
-// assertNotContains checks if haystack doesn't contain needle
+// assertNotContains fails if haystack contains needle.
 func assertNotContains(t *testing.T, haystack, needle string) {
 	t.Helper()
 	if strings.Contains(haystack, needle) {
-		t.Errorf("Expected output to NOT contain %q, got:\n%s", needle, haystack)
+		t.Errorf("expected output NOT to contain %q\ngot:\n%s", needle, haystack)
 	}
+}
+
+// backends lists the backends covered by integration tests.
+var backends = []string{"sqlite", "files"}
+
+// TestMain just ensures the binary is available.
+func TestMain(m *testing.M) {
+	if _, err := exec.LookPath("glow"); err != nil {
+		// Built by `just test` which runs `just build` first
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
 }

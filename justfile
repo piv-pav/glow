@@ -33,6 +33,14 @@ version:
 # Build and test
 all: fmt test build
 
+# Export a wiki to a tar.gz archive
+export wiki output:
+    bin/glow export {{wiki}} {{output}}
+
+# Import a wiki from a tar.gz archive
+import wiki input:
+    bin/glow import {{wiki}} {{input}}
+
 # Create a new release tag
 tag version:
     git tag -a v{{version}} -m "Release v{{version}}"
