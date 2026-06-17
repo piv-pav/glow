@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/adrg/xdg"
 	"gopkg.in/yaml.v3"
@@ -17,15 +18,52 @@ const (
 	BackendFiles  BackendType = "files"
 	BackendSQLite BackendType = "sqlite"
 	BackendPgSQL  BackendType = "pgsql"
+	BackendRqlite BackendType = "rqlite"
 )
 
 // WikiConfig holds per-wiki configuration.
 type WikiConfig struct {
 	// DataPath overrides the default data directory for this wiki.
 	// Defaults to <GLOW_DATA>/<name> if empty.
-	DataPath string      `yaml:"data_path,omitempty"`
-	Backend  BackendType `yaml:"backend"`
+	DataPath string        `yaml:"data_path,omitempty"`
+	Backend  BackendType   `yaml:"backend"`
 	PgSQL    *PgSQLConfig  `yaml:"pgsql,omitempty"`
+	Rqlite   *RqliteConfig `yaml:"rqlite,omitempty"`
+}
+
+// RqliteConfig holds rqlite connection parameters.
+type RqliteConfig struct {
+	URL      string `yaml:"url"`                // e.g. "http://localhost:4001" or "https://glow.example.com"
+	User     string `yaml:"user,omitempty"`
+	Password string `yaml:"password,omitempty"`
+	Level    string `yaml:"level,omitempty"` // none, weak, strong (default: weak)
+}
+
+// ConnString builds the gorqlite connection string.
+func (r *RqliteConfig) ConnString() string {
+	userinfo := ""
+	if r.User != "" {
+		userinfo = r.User
+		if r.Password != "" {
+			userinfo += ":" + r.Password
+		}
+		userinfo += "@"
+	}
+	query := ""
+	if r.Level != "" {
+		query = "?level=" + r.Level
+	}
+	// Strip scheme, inject userinfo, re-add scheme.
+	url := r.URL
+	scheme := "http"
+	if strings.HasPrefix(url, "https://") {
+		scheme = "https"
+		url = strings.TrimPrefix(url, "https://")
+	} else {
+		url = strings.TrimPrefix(url, "http://")
+	}
+	url = strings.TrimRight(url, "/")
+	return scheme + "://" + userinfo + url + "/" + query
 }
 
 // PgSQLConfig holds PostgreSQL connection parameters.

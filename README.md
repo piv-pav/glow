@@ -10,7 +10,7 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 - 📁 **Nested Folders** - Organize articles in hierarchical structure
 - ✂️ **Section Editing** - Update specific sections of articles
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
-- 💾 **Multiple Backends** - SQLite (default), PostgreSQL, or plain files
+- 💾 **Multiple Backends** - SQLite (default), PostgreSQL, rqlite, or plain files
 - 📦 **Export/Import** - Migrate articles between wikis and backends
 
 ## Installation
@@ -208,12 +208,13 @@ Your markdown content here...
 
 ## Data Storage
 
-Glow supports three storage backends:
+Glow supports four storage backends:
 
 | Backend | Search | Best for |
 |---------|--------|----------|
 | **SQLite** (default) | FTS5 | Single-machine, fast, zero config |
 | **PostgreSQL** | tsvector + GIN | Shared/remote access, large wikis |
+| **rqlite** | FTS5 | Distributed, offline reads, cluster |
 | **Files** | Bleve index | Human-readable, git-friendly |
 
 Select backend during `glow init` or set in `~/.config/glow/glow.yaml`:
@@ -230,6 +231,13 @@ wikis:
       dbname: glow
       user: glow
       password: secret
+  distributed:
+    backend: rqlite
+    rqlite:
+      url: "http://localhost:4001"
+      user: glow
+      password: secret
+      level: weak          # none|weak|strong
   notes:
     backend: files
 ```

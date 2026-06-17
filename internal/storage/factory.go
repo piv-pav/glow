@@ -29,6 +29,11 @@ func New(wikiName string) (Store, error) {
 			return nil, fmt.Errorf("pgsql backend requires [pgsql] config block in glow.yaml")
 		}
 		return NewPgSQLStorage(cfg.PgSQL.DSN())
+	case config.BackendRqlite:
+		if cfg.Rqlite == nil {
+			return nil, fmt.Errorf("rqlite backend requires [rqlite] config block in glow.yaml")
+		}
+		return NewRqliteStorage(cfg.Rqlite.ConnString())
 	default: // sqlite (and empty / unknown)
 		return NewSQLiteStorage(wikiName)
 	}
