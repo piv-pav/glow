@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"codeberg.org/pivpav/glow/internal/article"
+	"codeberg.org/pivpav/glow/internal/config"
+	_ "github.com/rqlite/gorqlite/stdlib"
+	_ "modernc.org/sqlite"
 )
 
 // placeholder defines how a SQL backend generates parameter placeholders.
@@ -273,4 +276,61 @@ func (s *sqlStore) scanSearchResults(rows *sql.Rows) (*SearchOutput, error) {
 		out.Total = total
 	}
 	return out, rows.Err()
+}
+
+// --- SQLite backend ---
+
+type sqliteStorage struct{ sqlStore }
+
+func newSQLiteStorage(wikiName string) (*sqliteStorage, error) {
+	dbPath, err := config.GetWikiDBPath(wikiName)
+	if err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open sqlite db: %w", err)
+	}
+	// WAL mode + foreign keys
+	for _, pragma := range []string{"PRAGMA journal_mode=WAL", "PRAGMA foreign_keys=ON"} {
+		if _, err := db.Exec(pragma); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("sqlite pragma failed: %w", err)
+		}
+	}
+	s := &sqliteStorage{sqlStore{db: db, ph: func(_ int) string { return "?" }}}
+	if err := s.fts5Migrate(db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return s, nil
+}
+
+func (s *sqliteStorage) Search(query string, filters map[string]string, limit int) (*SearchOutput, error) {
+	return s.searchFTS5(query, filters, limit)
+}
+
+// --- rqlite backend ---
+
+type rqliteStorage struct{ sqlStore }
+
+func newRqliteStorage(url string) (*rqliteStorage, error) {
+	db, err := sql.Open("rqlite", url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open rqlite connection: %w", err)
+	}
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("rqlite ping failed: %w", err)
+	}
+	s := &rqliteStorage{sqlStore{db: db, ph: func(_ int) string { return "?" }}}
+	if err := s.fts5Migrate(db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return s, nil
+}
+
+func (s *rqliteStorage) Search(query string, filters map[string]string, limit int) (*SearchOutput, error) {
+	return s.searchFTS5(query, filters, limit)
 }

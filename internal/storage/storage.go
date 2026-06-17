@@ -5,8 +5,38 @@ import (
 	"fmt"
 	"strings"
 
+	"codeberg.org/pivpav/glow/internal/article"
 	"codeberg.org/pivpav/glow/internal/config"
 )
+
+// Store is the backend-agnostic storage interface.
+type Store interface {
+	Create(name string, art *article.Article) error
+	Read(name string) (*article.Article, error)
+	Update(name string, art *article.Article) error
+	Delete(name string) error
+	Move(oldName, newName string) error
+	List() ([]string, error)
+	Close() error
+}
+
+// SearchResult is a single search hit.
+type SearchResult struct {
+	Name    string
+	Snippet string
+	Tags    []string
+}
+
+// SearchOutput holds search results with total match count.
+type SearchOutput struct {
+	Results []SearchResult
+	Total   int
+}
+
+// Searcher is implemented by backends that support native full-text search.
+type Searcher interface {
+	Search(query string, filters map[string]string, limit int) (*SearchOutput, error)
+}
 
 // New opens the correct Store for wikiName based on its config.
 func New(wikiName string) (Store, error) {
@@ -26,9 +56,9 @@ func New(wikiName string) (Store, error) {
 		if cfg.Rqlite == nil {
 			return nil, fmt.Errorf("rqlite backend requires [rqlite] config block in glow.yaml")
 		}
-		return NewRqliteStorage(cfg.Rqlite.ConnString())
-	default: // sqlite (and empty / unknown)
-		return NewSQLiteStorage(wikiName)
+		return newRqliteStorage(cfg.Rqlite.ConnString())
+	default:
+		return newSQLiteStorage(wikiName)
 	}
 }
 
@@ -67,7 +97,6 @@ func marshalMeta(fm map[string]interface{}) (string, error) {
 	return string(b), nil
 }
 
-// unmarshalMeta deserialises JSON back to a frontmatter map.
 func unmarshalMeta(meta string) (map[string]interface{}, error) {
 	fm := make(map[string]interface{})
 	if meta == "" || meta == "{}" {
