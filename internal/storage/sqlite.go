@@ -100,7 +100,9 @@ func (s *SQLiteStorage) Search(query string, filters map[string]string, limit in
 	var sqlStr string
 	if query != "" {
 		conditions = append(conditions, `a.rowid IN (SELECT rowid FROM articles_fts WHERE articles_fts MATCH ?)`)
-		args = append(args, query)
+		// Join terms with OR so partial matches rank via BM25 instead of requiring all terms
+		ftsQuery := strings.Join(strings.Fields(query), " OR ")
+		args = append(args, ftsQuery)
 
 		where := "WHERE " + strings.Join(conditions, " AND ")
 		// bm25 weights: name=10, content=1, tags=5 (column order in FTS5 table)

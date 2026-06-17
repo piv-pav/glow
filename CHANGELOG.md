@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.5] - 2026-06-17
+
+### Fixed
+- **Search**: PostgreSQL now uses `websearch_to_tsquery()` instead of `plainto_tsquery()` for better partial match ranking via OR logic
+- **Search**: SQLite/rqlite search queries now split on whitespace and join with OR to improve partial match ranking
+- **Search**: Multi-term queries now return results matching any term (ranked by relevance) instead of requiring all terms
+
 ## [0.8.4] - 2026-06-17
 
 ### Changed

@@ -88,9 +88,11 @@ func (s *PgSQLStorage) Search(query string, filters map[string]string, limit int
 
 	conditions, args, i := s.buildSearchConditions(filters, 1, "")
 
+	// Join terms with OR so partial matches rank via ts_rank instead of requiring all terms
+	tsQuery := strings.Join(strings.Fields(query), " OR ")
 	if query != "" {
-		conditions = append(conditions, fmt.Sprintf(`tsv @@ plainto_tsquery('english', $%d)`, i))
-		args = append(args, query)
+		conditions = append(conditions, fmt.Sprintf(`tsv @@ websearch_to_tsquery('english', $%d)`, i))
+		args = append(args, tsQuery)
 		i++
 	}
 
@@ -103,12 +105,12 @@ func (s *PgSQLStorage) Search(query string, filters map[string]string, limit int
 	if query != "" {
 		sqlStr = fmt.Sprintf(`
 			SELECT name, tags,
-				ts_headline('english', content, plainto_tsquery('english', $%d), 'MaxFragments=1,MaxWords=20,MinWords=5') AS snippet,
-				ts_rank(tsv, plainto_tsquery('english', $%d)) AS score
+				ts_headline('english', content, websearch_to_tsquery('english', $%d), 'MaxFragments=1,MaxWords=20,MinWords=5') AS snippet,
+				ts_rank(tsv, websearch_to_tsquery('english', $%d)) AS score
 			FROM articles %s
 			ORDER BY score DESC
 			LIMIT $%d`, i, i, where, i+1)
-		args = append(args, query, limit)
+		args = append(args, tsQuery, limit)
 	} else {
 		sqlStr = fmt.Sprintf(`
 			SELECT name, tags, '' AS snippet, 0.0 AS score
