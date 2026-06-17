@@ -3,7 +3,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"path/filepath"
 
 	"codeberg.org/pivpav/glow/internal/config"
 	_ "modernc.org/sqlite"
@@ -16,12 +15,11 @@ type SQLiteStorage struct {
 
 // NewSQLiteStorage opens (or creates) a SQLite DB for the given wiki.
 func NewSQLiteStorage(wikiName string) (*SQLiteStorage, error) {
-	wikiPath, err := config.GetWikiPath(wikiName)
+	dbPath, err := config.GetWikiDBPath(wikiName)
 	if err != nil {
 		return nil, err
 	}
 
-	dbPath := filepath.Join(wikiPath, "articles.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite db: %w", err)

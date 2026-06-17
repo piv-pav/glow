@@ -22,11 +22,11 @@ const (
 
 // WikiConfig holds per-wiki configuration.
 type WikiConfig struct {
-	// DataPath overrides the default data directory for this wiki.
-	// Defaults to <GLOW_DATA>/<name> if empty.
-	DataPath string        `yaml:"data_path,omitempty"`
-	Backend  BackendType   `yaml:"backend"`
-	Rqlite   *RqliteConfig `yaml:"rqlite,omitempty"`
+	// DBPath overrides the default SQLite file path for this wiki.
+	// Defaults to <GLOW_DATA>/<name>.db if empty.
+	DBPath  string        `yaml:"db_path,omitempty"`
+	Backend BackendType   `yaml:"backend"`
+	Rqlite  *RqliteConfig `yaml:"rqlite,omitempty"`
 }
 
 // RqliteConfig holds rqlite connection parameters.
@@ -141,8 +141,8 @@ func GetWikiConfig(wikiName string) (*WikiConfig, error) {
 	return nil, nil
 }
 
-// GetWikiPath returns the data directory for a wiki.
-func GetWikiPath(wikiName string) (string, error) {
+// GetWikiDBPath returns the SQLite file path for a wiki.
+func GetWikiDBPath(wikiName string) (string, error) {
 	if wikiName == "" {
 		wikiName = "default"
 	}
@@ -150,19 +150,19 @@ func GetWikiPath(wikiName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if wc, ok := cfg.Wikis[wikiName]; ok && wc.DataPath != "" {
-		return wc.DataPath, nil
+	if wc, ok := cfg.Wikis[wikiName]; ok && wc.DBPath != "" {
+		return wc.DBPath, nil
 	}
 	base, err := GetWikiBasePath()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(base, wikiName), nil
+	return filepath.Join(base, wikiName+".db"), nil
 }
 
 var validWikiName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)
 
-// CreateWiki registers a new wiki in glow.yaml and creates its data directory (for local backends only).
+// CreateWiki registers a new wiki in glow.yaml.
 func CreateWiki(wikiName string, wc *WikiConfig) error {
 	if wikiName == "" {
 		return fmt.Errorf("wiki name cannot be empty")
@@ -177,23 +177,6 @@ func CreateWiki(wikiName string, wc *WikiConfig) error {
 	}
 	if _, exists := cfg.Wikis[wikiName]; exists {
 		return fmt.Errorf("wiki already exists: %s", wikiName)
-	}
-
-	dataPath := wc.DataPath
-	if dataPath == "" {
-		base, err := GetWikiBasePath()
-		if err != nil {
-			return err
-		}
-		dataPath = filepath.Join(base, wikiName)
-	}
-
-	// Remote backends (rqlite) store nothing locally — skip the empty dir.
-	isLocal := wc.Backend == BackendSQLite || wc.Backend == ""
-	if isLocal {
-		if err := os.MkdirAll(dataPath, 0755); err != nil {
-			return fmt.Errorf("failed to create wiki data directory: %w", err)
-		}
 	}
 
 	cfg.Wikis[wikiName] = wc
@@ -249,7 +232,7 @@ type DiscoveredWiki struct {
 	Backend BackendType
 }
 
-// DiscoverWikis scans the data directory for wiki directories not in config.
+// DiscoverWikis scans the data directory for *.db files not in config.
 func DiscoverWikis() ([]DiscoveredWiki, error) {
 	base, err := GetWikiBasePath()
 	if err != nil {
@@ -271,36 +254,25 @@ func DiscoverWikis() ([]DiscoveredWiki, error) {
 
 	var found []DiscoveredWiki
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if entry.IsDir() {
 			continue
 		}
-		name := entry.Name()
+		fname := entry.Name()
+		if !strings.HasSuffix(fname, ".db") {
+			continue
+		}
+		name := strings.TrimSuffix(fname, ".db")
 		if _, registered := cfg.Wikis[name]; registered {
 			continue
 		}
 		if !validWikiName.MatchString(name) {
 			continue
 		}
-
-		dir := filepath.Join(base, name)
-		backend := detectBackend(dir)
-		if backend == "" {
-			continue // empty or unrecognized directory
-		}
-
 		found = append(found, DiscoveredWiki{
 			Name:    name,
-			Path:    dir,
-			Backend: backend,
+			Path:    filepath.Join(base, fname),
+			Backend: BackendSQLite,
 		})
 	}
 	return found, nil
-}
-
-// detectBackend checks a wiki directory for known artifacts.
-func detectBackend(dir string) BackendType {
-	if _, err := os.Stat(filepath.Join(dir, "articles.db")); err == nil {
-		return BackendSQLite
-	}
-	return ""
 }

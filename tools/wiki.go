@@ -73,7 +73,7 @@ func runWikiInit(cmd *cobra.Command, args []string) error {
 	case config.BackendRqlite:
 		fmt.Printf("Location: %s\n", cfg.Rqlite.URL)
 	default:
-		wikiPath, _ := config.GetWikiPath(name)
+		wikiPath, _ := config.GetWikiDBPath(name)
 		fmt.Printf("Location: %s\n", wikiPath)
 	}
 	return nil
@@ -118,7 +118,7 @@ func runWikiCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Printf("Created wiki: %s\n", name)
-	wikiPath, _ := config.GetWikiPath(name)
+	wikiPath, _ := config.GetWikiDBPath(name)
 	fmt.Printf("Location: %s\n", wikiPath)
 	return nil
 }
@@ -144,7 +144,7 @@ func runWikiList(cmd *cobra.Command, args []string) error {
 			}
 		}
 		if location == "" {
-			location, _ = config.GetWikiPath(wiki)
+			location, _ = config.GetWikiDBPath(wiki)
 		}
 		fmt.Printf("  %s  [%s]\n    %s\n", wiki, backend, location)
 	}
@@ -163,14 +163,14 @@ func runWikiDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if cfg.Backend == config.BackendSQLite {
-		wikiPath, err := config.GetWikiPath(name)
+		wikiPath, err := config.GetWikiDBPath(name)
 		if err != nil {
 			return err
 		}
-		if err := os.RemoveAll(wikiPath); err != nil {
-			return fmt.Errorf("failed to remove wiki data: %w", err)
+		if err := os.Remove(wikiPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove wiki db: %w", err)
 		}
-		fmt.Printf("Removed data: %s\n", wikiPath)
+		fmt.Printf("Removed: %s\n", wikiPath)
 	}
 
 	if err := config.DeleteWiki(name); err != nil {
