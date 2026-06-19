@@ -2,6 +2,24 @@
 
 A simple CLI tool providing wiki-like access to markdown articles with full-text search and metadata management.
 
+> ## ⚠️ Breaking Changes in 0.9.0
+>
+> Version **0.9.0** massively changes the way glow operates and is **not backward compatible** with 0.8.7 and below.
+>
+> See the [CHANGELOG](CHANGELOG.md) for the full nature of the changes.
+>
+> **If you are upgrading from 0.8.7 or earlier, you must migrate your data to avoid data loss:**
+>
+> 1. **Export** all your wikis *before* upgrading:
+>    ```bash
+>    glow export <wiki> /tmp/<wiki>-backup.json
+>    ```
+> 2. **Upgrade** glow to 0.9.0.
+> 3. **Import** your wikis back:
+>    ```bash
+>    glow import <wiki> /tmp/<wiki>-backup.json
+>    ```
+
 ## Features
 
 - 📝 **Markdown Articles** - Store articles with YAML frontmatter metadata
