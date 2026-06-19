@@ -77,7 +77,7 @@ glow create "article-name" --content "# Title\n\nContent here"
 
 # Read article
 glow read "article-name"                    # Content only
-glow read "article-name" --raw              # Include frontmatter
+glow read "article-name" --tags             # List only the article's tags (-t)
 glow read "article-name" --section "Setup"  # Read specific section
 glow read "article-name" --sections         # List all sections
 
