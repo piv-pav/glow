@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-06-18
 
 ### Breaking Changes
+- **`glow read --raw` removed**: The `--raw`/`-r` flag (frontmatter dump) is gone. Use `glow read --tags`/`-t` to inspect an article's tags.
 - **Backends removed**: `files` and `pgsql` backends are gone. SQLite and rqlite only.
 - **Storage layout**: Wiki databases moved from `<data>/<name>/articles.db` to `<data>/<name>.db`. Existing wikis must be migrated via `glow export` / `glow import`.
 - **`rebuild` command removed**: Was only needed for the files/Bleve backend.
 - **`data_path` config key renamed to `db_path`**: Points directly to the `.db` file, not a directory.
+
+### Added
+- **`glow read --tags`/`-t`**: List only the article's tags, one per line.
 
 ### Removed
 - `files` backend (plain markdown files + Bleve full-text index)
