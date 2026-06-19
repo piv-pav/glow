@@ -13,19 +13,19 @@ func TestWikiTags(t *testing.T) {
 
 			// Add tag
 			e.mustRun(t, "update", "tag-test", "--tag", "added")
-			out, _ := e.run("read", "tag-test", "--raw")
+			out, _ := e.run("read", "tag-test", "--tags")
 			assertContains(t, out, "initial")
 			assertContains(t, out, "added")
 
 			// Remove tag
 			e.mustRun(t, "update", "tag-test", "--untag", "initial")
-			out, _ = e.run("read", "tag-test", "--raw")
+			out, _ = e.run("read", "tag-test", "--tags")
 			assertNotContains(t, out, "initial")
 			assertContains(t, out, "added")
 
 			// Tag deduplication
 			e.mustRun(t, "update", "tag-test", "--tag", "added")
-			out, _ = e.run("read", "tag-test", "--raw")
+			out, _ = e.run("read", "tag-test", "--tags")
 			if strings.Count(out, "added") > 1 {
 				t.Errorf("tag 'added' duplicated in output:\n%s", out)
 			}

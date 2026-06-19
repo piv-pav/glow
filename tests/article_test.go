@@ -28,7 +28,7 @@ func TestWikiCreate(t *testing.T) {
 					name: "create with tags",
 					args: []string{"create", "test-tags", "--content", "Test", "--tag", "go", "--tag", "cli"},
 					check: func(t *testing.T, output string) {
-						out, _ := e.run("read", "test-tags", "--raw")
+						out, _ := e.run("read", "test-tags", "--tags")
 						assertContains(t, out, "go")
 						assertContains(t, out, "cli")
 					},
@@ -37,7 +37,7 @@ func TestWikiCreate(t *testing.T) {
 					name: "create with comma-separated tags",
 					args: []string{"create", "test-comma-tags", "--content", "Test", "--tag", "go,cli"},
 					check: func(t *testing.T, output string) {
-						out, _ := e.run("read", "test-comma-tags", "--raw")
+						out, _ := e.run("read", "test-comma-tags", "--tags")
 						assertContains(t, out, "go")
 						assertContains(t, out, "cli")
 					},

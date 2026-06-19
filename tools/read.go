@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	readRaw      bool
+	readTags     bool
 	readSection  string
 	readSections bool
 )
@@ -18,13 +18,13 @@ var readCmd = &cobra.Command{
 	Use:     "read [article-name]",
 	Aliases: []string{"show", "cat"},
 	Short:   "Read an article",
-	Long:    `Display the full content of an article. Use --raw to include frontmatter.`,
+	Long:    `Display the full content of an article. Use --tags to list its tags.`,
 	Args:    cobra.ExactArgs(1),
 	RunE:    runRead,
 }
 
 func init() {
-	readCmd.Flags().BoolVarP(&readRaw, "raw", "r", false, "Show raw content including frontmatter")
+	readCmd.Flags().BoolVarP(&readTags, "tags", "t", false, "List only the article's tags")
 	readCmd.Flags().StringVarP(&readSection, "section", "s", "", "Read only specific section by heading")
 	readCmd.Flags().BoolVar(&readSections, "sections", false, "List all sections in the article")
 }
@@ -37,6 +37,13 @@ func runRead(cmd *cobra.Command, args []string) error {
 		art, err := store.Read(name)
 		if err != nil {
 			return err
+		}
+
+		if readTags {
+			for _, tag := range art.GetTags() {
+				fmt.Println(tag)
+			}
+			return nil
 		}
 
 		if readSections {
@@ -57,26 +64,14 @@ func runRead(cmd *cobra.Command, args []string) error {
 			if section == nil {
 				return fmt.Errorf("section not found: %s", readSection)
 			}
-			if readRaw {
-				fmt.Print(section.Content)
-			} else {
-				lines := strings.Split(section.Content, "\n")
-				if len(lines) > 1 {
-					fmt.Print(strings.Join(lines[1:], "\n"))
-				}
+			lines := strings.Split(section.Content, "\n")
+			if len(lines) > 1 {
+				fmt.Print(strings.Join(lines[1:], "\n"))
 			}
 			return nil
 		}
 
-		if readRaw {
-			data, err := art.Serialize()
-			if err != nil {
-				return fmt.Errorf("failed to serialize article: %w", err)
-			}
-			fmt.Print(string(data))
-		} else {
-			fmt.Print(art.Content)
-		}
+		fmt.Print(art.Content)
 		return nil
 	})
 }
