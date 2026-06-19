@@ -11,6 +11,8 @@ var (
 	appendSection string
 	appendContent string
 	appendStdin   bool
+	appendTags    []string
+	appendUntags  []string
 )
 
 var appendCmd = &cobra.Command{
@@ -20,8 +22,10 @@ var appendCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE:  runAppend,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !appendStdin && appendContent == "" {
-			return fmt.Errorf("must specify one of: --content or --stdin")
+		hasContent := appendStdin || appendContent != ""
+		hasTags := len(appendTags) > 0 || len(appendUntags) > 0
+		if !hasContent && !hasTags {
+			return fmt.Errorf("must specify one of: --content, --stdin, --tag, or --untag")
 		}
 		return nil
 	},
@@ -31,6 +35,8 @@ func init() {
 	appendCmd.Flags().StringVar(&appendSection, "section", "", "Append to specific section by heading")
 	appendCmd.Flags().StringVar(&appendContent, "content", "", "Content to append")
 	appendCmd.Flags().BoolVar(&appendStdin, "stdin", false, "Read content from stdin")
+	appendCmd.Flags().StringArrayVar(&appendTags, "tag", []string{}, "Add tag (comma-separated or repeated: --tag go --tag cli)")
+	appendCmd.Flags().StringArrayVar(&appendUntags, "untag", []string{}, "Remove tag (comma-separated or repeated: --untag go --untag cli)")
 }
 
 func runAppend(cmd *cobra.Command, args []string) error {
@@ -48,13 +54,24 @@ func runAppend(cmd *cobra.Command, args []string) error {
 	}
 
 	return modifyArticle(wikiName, name, func(art *article.Article) error {
-		if appendSection != "" {
-			return art.AppendToSection(appendSection, content)
+		if content != "" {
+			if appendSection != "" {
+				if err := art.AppendToSection(appendSection, content); err != nil {
+					return err
+				}
+			} else {
+				if art.Content != "" && art.Content[len(art.Content)-1] != '\n' {
+					art.Content += "\n"
+				}
+				art.Content += "\n" + content
+			}
 		}
-		if art.Content != "" && art.Content[len(art.Content)-1] != '\n' {
-			art.Content += "\n"
+		if len(appendTags) > 0 {
+			art.AddTags(appendTags...)
 		}
-		art.Content += "\n" + content
+		if len(appendUntags) > 0 {
+			art.RemoveTags(appendUntags...)
+		}
 		return nil
 	}, msg)
 }
