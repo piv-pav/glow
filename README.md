@@ -12,12 +12,12 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 >
 > 1. **Export** all your wikis *before* upgrading:
 >    ```bash
->    glow export <wiki> /tmp/<wiki>-backup.json
+>    glow export <wiki> /tmp/<wiki>-backup.tar.gz
 >    ```
 > 2. **Upgrade** glow to 0.9.0.
 > 3. **Import** your wikis back:
 >    ```bash
->    glow import <wiki> /tmp/<wiki>-backup.json
+>    glow import <wiki> /tmp/<wiki>-backup.tar.gz
 >    ```
 
 ## Features
@@ -193,8 +193,8 @@ glow -w work list
 glow -w personal create "notes" --content "Notes"
 
 # Export/Import
-glow export default /tmp/backup.json
-glow import work /tmp/backup.json
+glow export default /tmp/backup.tar.gz
+glow import work /tmp/backup.tar.gz
 ```
 
 ### Listing
