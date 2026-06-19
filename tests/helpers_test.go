@@ -51,6 +51,38 @@ func (e *testEnv) run(args ...string) (string, error) {
 	return string(out), err
 }
 
+// runStdin executes a glow command feeding stdin, defaulting --wiki to e.wiki.
+func (e *testEnv) runStdin(stdin string, args ...string) (string, error) {
+	hasWiki := false
+	for _, a := range args {
+		if a == "--wiki" || a == "-w" {
+			hasWiki = true
+			break
+		}
+	}
+	if !hasWiki {
+		args = append([]string{"--wiki", e.wiki}, args...)
+	}
+	cmd := exec.Command("glow", args...)
+	cmd.Env = append(os.Environ(),
+		"GLOW_DATA="+e.data,
+		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
+	)
+	cmd.Stdin = strings.NewReader(stdin)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// mustRunStdin fails the test if the command errors.
+func (e *testEnv) mustRunStdin(t *testing.T, stdin string, args ...string) string {
+	t.Helper()
+	out, err := e.runStdin(stdin, args...)
+	if err != nil {
+		t.Fatalf("glow %s failed: %v\nOutput: %s", strings.Join(args, " "), err, out)
+	}
+	return out
+}
+
 // runGlobal runs a command without injecting --wiki (for wiki-list, export, import, init).
 func (e *testEnv) runGlobal(args ...string) (string, error) {
 	cmd := exec.Command("glow", args...)
