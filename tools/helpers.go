@@ -29,6 +29,15 @@ func withStore(wikiName string, fn func(storage.Store) error) error {
 
 // modifyArticle reads an article, applies a modification, saves, updates index, and prints successMsg.
 func modifyArticle(wikiName, name string, modify func(*article.Article) error, successMsg string) error {
+	if err := modifyArticleQuiet(wikiName, name, modify); err != nil {
+		return err
+	}
+	fmt.Println(successMsg)
+	return nil
+}
+
+// modifyArticleQuiet is modifyArticle without printing a success message.
+func modifyArticleQuiet(wikiName, name string, modify func(*article.Article) error) error {
 	store, err := storage.New(wikiName)
 	if err != nil {
 		return fmt.Errorf("failed to open store: %w", err)
@@ -46,8 +55,6 @@ func modifyArticle(wikiName, name string, modify func(*article.Article) error, s
 	if err := store.Update(name, art); err != nil {
 		return err
 	}
-
-	fmt.Println(successMsg)
 	return nil
 }
 

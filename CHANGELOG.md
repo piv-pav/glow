@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-06-19
+
+### Added
+- **`glow update --diff`**: Update an article by piping SEARCH/REPLACE diff blocks via STDIN — the format most AI tools emit for text edits:
+  ```
+  <<<<<<< SEARCH
+  exact existing text
+  =======
+  replacement text
+  >>>>>>> REPLACE
+  ```
+  Multiple blocks are applied in order. Each SEARCH must match exactly once (errors on zero or multiple matches, so edits stay unambiguous). An empty SEARCH prepends. Edits are atomic — the article is left untouched if any block fails to apply.
+  - `--diff` is its own input mode and cannot be combined with `--content` or `--stdin`.
+  - Works with `--section`: scope the blocks to a single section so SEARCH text only needs to be unique within that section.
+  - Combines with `--tag`/`--untag`.
+
 ## [0.9.0] - 2026-06-18
 
 ### Breaking Changes

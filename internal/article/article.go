@@ -189,6 +189,33 @@ func (a *Article) UpdateSection(heading, newContent string) error {
 	return nil
 }
 
+// ApplyDiffToSection applies SEARCH/REPLACE diff blocks scoped to a single
+// section (matched by heading). SEARCH text need only be unique within that
+// section. The heading line is part of the section content, so blocks may also
+// match/edit it. Returns the number of blocks applied.
+func (a *Article) ApplyDiffToSection(heading, diff string) (int, error) {
+	section := a.FindSection(heading)
+	if section == nil {
+		return 0, fmt.Errorf("section not found: %s", heading)
+	}
+
+	newSectionContent, n, err := ApplyDiff(section.Content, diff)
+	if err != nil {
+		return 0, err
+	}
+
+	lines := strings.Split(a.Content, "\n")
+	var newLines []string
+	newLines = append(newLines, lines[:section.Start]...)
+	newLines = append(newLines, strings.Split(newSectionContent, "\n")...)
+	if section.End < len(lines) {
+		newLines = append(newLines, lines[section.End:]...)
+	}
+
+	a.Content = strings.Join(newLines, "\n")
+	return n, nil
+}
+
 // DeleteSection removes a section by heading
 func (a *Article) DeleteSection(heading string) error {
 	section := a.FindSection(heading)

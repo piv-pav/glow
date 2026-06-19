@@ -65,6 +65,21 @@ echo "More content" | glow append "article-name" --stdin
 
 Note: `\n` in `--content` is also interpreted if needed, but multiline strings are preferred.
 
+### Diff-based Update (SEARCH/REPLACE blocks)
+
+Update an article by piping SEARCH/REPLACE blocks via STDIN — the format most AI tools emit for text edits. Good for surgical, multi-spot edits without re-pasting whole sections:
+
+```bash
+printf '<<<<<<< SEARCH\nexact old text\n=======\nnew text\n>>>>>>> REPLACE\n' | glow update "article-name" --diff
+
+# Scope to a single section (SEARCH only needs to be unique within that section)
+printf '<<<<<<< SEARCH\nold\n=======\nnew\n>>>>>>> REPLACE\n' | glow update "article-name" --diff --section "Status"
+```
+
+- Multiple blocks applied in order; each SEARCH must match **exactly once** (errors on 0 or >1 matches).
+- Edits are **atomic** — article unchanged if any block fails.
+- `--diff` reads only from STDIN; cannot combine with `--content`/`--stdin`. Combines with `--section`, `--tag`, `--untag`.
+
 ### Tags
 ```bash
 glow update "article-name" --tag kafka

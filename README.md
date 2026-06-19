@@ -96,6 +96,11 @@ glow update "article-name" --tag a,b --untag c
 # Update specific section
 glow update "article-name" --section "Installation" --content "New section content"
 
+# Update via SEARCH/REPLACE diff blocks from STDIN (AI-style edits)
+printf '<<<<<<< SEARCH\nold text\n=======\nnew text\n>>>>>>> REPLACE\n' | glow update "article-name" --diff
+# Scope the diff to one section
+printf '<<<<<<< SEARCH\nold\n=======\nnew\n>>>>>>> REPLACE\n' | glow update "article-name" --diff --section "Status"
+
 # Append content
 glow append "article-name" --content "Additional content"
 glow append "article-name" --content "Line 1
