@@ -141,13 +141,63 @@ func TestWikiAppend(t *testing.T) {
 	for _, backend := range backends {
 		t.Run(backend, func(t *testing.T) {
 			e := newEnv(t, backend)
-			e.mustRun(t, "create", "appendme", "--content", "# Hello\n\nFirst.")
 
-			e.mustRun(t, "append", "appendme", "--content", "\n\nSecond.")
+			t.Run("content", func(t *testing.T) {
+				e.mustRun(t, "create", "appendme", "--content", "# Hello\n\nFirst.")
+				e.mustRun(t, "append", "appendme", "--content", "\n\nSecond.")
+				out := e.readArticle(t, "appendme")
+				assertContains(t, out, "First.")
+				assertContains(t, out, "Second.")
+			})
 
-			out := e.readArticle(t, "appendme")
-			assertContains(t, out, "First.")
-			assertContains(t, out, "Second.")
+			t.Run("with --tag", func(t *testing.T) {
+				e.mustRun(t, "create", "append-tag", "--content", "Content", "--tag", "initial")
+				e.mustRun(t, "append", "append-tag", "--content", "More", "--tag", "added")
+				out := e.readArticle(t, "append-tag")
+				assertContains(t, out, "Content")
+				assertContains(t, out, "More")
+				tags, _ := e.run("read", "append-tag", "--tags")
+				assertContains(t, tags, "initial")
+				assertContains(t, tags, "added")
+			})
+
+			t.Run("with --untag", func(t *testing.T) {
+				e.mustRun(t, "create", "append-untag", "--content", "Content", "--tag", "stale", "--tag", "keep")
+				e.mustRun(t, "append", "append-untag", "--content", "More", "--untag", "stale")
+				out := e.readArticle(t, "append-untag")
+				assertContains(t, out, "Content")
+				assertContains(t, out, "More")
+				tags, _ := e.run("read", "append-untag", "--tags")
+				assertNotContains(t, tags, "stale")
+				assertContains(t, tags, "keep")
+			})
+
+			t.Run("tag-only --tag", func(t *testing.T) {
+				e.mustRun(t, "create", "append-tagonly", "--content", "Content", "--tag", "initial")
+				e.mustRun(t, "append", "append-tagonly", "--tag", "tagonly")
+				out := e.readArticle(t, "append-tagonly")
+				assertContains(t, out, "Content")
+				tags, _ := e.run("read", "append-tagonly", "--tags")
+				assertContains(t, tags, "initial")
+				assertContains(t, tags, "tagonly")
+			})
+
+			t.Run("tag-only --untag", func(t *testing.T) {
+				e.mustRun(t, "create", "append-untagonly", "--content", "Content", "--tag", "stale")
+				e.mustRun(t, "append", "append-untagonly", "--untag", "stale")
+				out := e.readArticle(t, "append-untagonly")
+				assertContains(t, out, "Content")
+				tags, _ := e.run("read", "append-untagonly", "--tags")
+				assertNotContains(t, tags, "stale")
+			})
+
+			t.Run("no content and no tags fails", func(t *testing.T) {
+				e.mustRun(t, "create", "append-fail", "--content", "Content")
+				_, err := e.run("append", "append-fail")
+				if err == nil {
+					t.Error("expected error for append with no --content, --stdin, --tag, or --untag")
+				}
+			})
 		})
 	}
 }
