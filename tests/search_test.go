@@ -41,6 +41,13 @@ func TestWikiSearch(t *testing.T) {
 					args:       []string{"search", "path:golang"},
 					wantInside: []string{"golang-basics"},
 				},
+				{
+					// Hyphenated terms must not crash with FTS5 column-filter parse error.
+					name:       "hyphenated terms",
+					args:       []string{"search", "self-hosting on-prem"},
+					// No articles match, but must not error — just return "No results found".
+					wantInside: []string{"No results found"},
+				},
 			}
 
 			for _, tt := range tests {

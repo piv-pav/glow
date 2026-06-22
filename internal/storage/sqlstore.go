@@ -225,8 +225,15 @@ func (s *sqlStore) searchFTS5(query string, filters map[string]string, limit int
 
 	var sqlStr string
 	if query != "" {
-		// Join terms with OR so partial matches rank via BM25
-		ftsQuery := strings.Join(strings.Fields(query), " OR ")
+		// Join terms with OR so partial matches rank via BM25.
+		// Quote each term so FTS5 treats hyphens/special chars as literals,
+		// not column filters or NOT operators (e.g. "self-hosting" would
+		// otherwise be parsed as column:self minus token:hosting).
+		terms := strings.Fields(query)
+		for i, t := range terms {
+			terms[i] = `"` + strings.ReplaceAll(t, `"`, `""`) + `"`
+		}
+		ftsQuery := strings.Join(terms, " OR ")
 
 		var filterWhere string
 		if len(conditions) > 0 {

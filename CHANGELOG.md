@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-06-22
+
+### Fixed
+- **FTS5 search crash on hyphenated terms**: Terms like "self-hosting" caused FTS5 query parsing errors. Now properly quoted to treat hyphens as literal characters instead of FTS5 operators.
+
 ## [0.9.2] - 2026-06-20
 
 ### Added
@@ -142,7 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 |-----------|-------|--------|-------|
 | CREATE 100 | 12.2s | 5.7s | 7.1s |
 | SEARCH 10 | 0.75s | 0.64s | 0.78s |
-| UPDATE 20 | 2.3s | 1.2s | 1.6s |
+| UPDATE 20 | 1.2s | 1.2s | 1.6s |
 | DELETE 100 | 8.0s | 5.5s | 6.9s |
 
 ## [0.7.1] - 2026-06-09
