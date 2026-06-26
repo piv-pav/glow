@@ -273,20 +273,30 @@ glow list
 
 ## Search Syntax
 
-Filters can be embedded directly in the query:
+Search has two parts:
 
-- `tag:value` - Search by tag
-- `path:folder/` - Search in specific folder (prefix match)
+**Text terms** are matched via FTS5 full-text search with BM25 ranking. Multiple terms are OR'd — articles matching more terms rank higher. Terms are treated as literals, so `go-yaml` or `self-hosting` work as expected. Raw FTS5 syntax (`NEAR()`, `NOT`, column filters) is not supported.
+
+**Filters** are glow-native tokens resolved against article metadata, not passed to FTS5:
+
+- `tag:value` — match articles with that tag
+- `path:folder/` — match articles whose name starts with that prefix
+
+Filters can be embedded in the query string or passed via `--filter`:
 
 ```bash
-# Find Go CLI articles
+# Text search only
+glow search "kubernetes"
+
+# Filters only
 glow search "tag:go tag:cli"
 
-# Find in specific folder
+# Combine text + filters
+glow search "kubernetes tag:devops"
 glow search "path:team/ retrospective"
 
-# Combine with text
-glow search "kubernetes tag:devops"
+# Explicit filter flag (same result)
+glow search "kubernetes" --filter=tag:devops
 ```
 
 ## Development
