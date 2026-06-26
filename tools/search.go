@@ -8,27 +8,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	searchFilters []string
-	searchLimit   int
-)
+var searchLimit int
 
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
 	Short: "Search articles",
 	Long: `Search articles by content and tags.
 
-Query can include embedded filters:
-  glow search "query text tag:go path:folder/"
-
-Or use explicit filter flags:
-  glow search "query text" --filter=tag:go`,
+Embed tag: and path: filters directly in the query:
+  glow search "query text tag:go path:folder/"`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runSearch,
 }
 
 func init() {
-	searchCmd.Flags().StringSliceVar(&searchFilters, "filter", []string{}, "Filter in field:value format (can be repeated)")
 	searchCmd.Flags().IntVarP(&searchLimit, "limit", "l", 10, "Maximum number of results")
 }
 
@@ -36,21 +29,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	queryStr := args[0]
 	wikiName := wikiNameFrom(cmd)
 
-	filters := make(map[string]string)
-	for _, f := range searchFilters {
-		k, v, ok := parseFilter(f)
-		if !ok {
-			return fmt.Errorf("invalid filter format: %s (expected field:value)", f)
-		}
-		filters[k] = v
-	}
-
-	queryStr, embedded := parseEmbeddedFilters(queryStr)
-	for k, v := range embedded {
-		if _, exists := filters[k]; !exists {
-			filters[k] = v
-		}
-	}
+	queryStr, filters := parseEmbeddedFilters(queryStr)
 
 	store, err := storage.New(wikiName)
 	if err != nil {

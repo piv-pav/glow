@@ -167,9 +167,6 @@ glow search "golang"
 # Search with filters
 glow search "indexing tag:go tag:cli"
 glow search "path:team/ meeting notes"
-
-# Using explicit filters
-glow search "query" --filter=tag:go -l 20
 ```
 
 ### Wiki Management
@@ -282,7 +279,7 @@ Search has two parts:
 - `tag:value` — match articles with that tag
 - `path:folder/` — match articles whose name starts with that prefix
 
-Filters can be embedded in the query string or passed via `--filter`:
+Filters are embedded directly in the query string:
 
 ```bash
 # Text search only
@@ -294,9 +291,6 @@ glow search "tag:go tag:cli"
 # Combine text + filters
 glow search "kubernetes tag:devops"
 glow search "path:team/ retrospective"
-
-# Explicit filter flag (same result)
-glow search "kubernetes" --filter=tag:devops
 ```
 
 ## Development
