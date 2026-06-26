@@ -135,6 +135,16 @@ func (s *sqlStore) Move(oldName, newName string) error {
 	if _, err := tx.Exec(`DELETE FROM articles WHERE name=`+s.ph(1), oldName); err != nil {
 		return err
 	}
+	// Best-effort: rewrite [[oldName]] wikilinks in all other articles.
+	// Handles exact matches only; [[oldName#anchor]] or [[oldName|alias]] are not rewritten.
+	oldLink := "[[" + oldName + "]]"
+	newLink := "[[" + newName + "]]"
+	if _, err := tx.Exec(
+		`UPDATE articles SET content = replace(content, ?, ?) WHERE content LIKE ? AND name != ?`,
+		oldLink, newLink, "%"+oldLink+"%", newName,
+	); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
