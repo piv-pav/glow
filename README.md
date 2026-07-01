@@ -204,6 +204,13 @@ glow list
 glow -w work list
 ```
 
+### Upgrading
+
+```bash
+# Check latest version on Codeberg and upgrade if needed
+glow upgrade
+```
+
 ## Article Format
 
 Articles are Markdown files with minimal YAML frontmatter (managed automatically):
@@ -311,6 +318,7 @@ glow/
 │   ├── move.go
 │   ├── read.go
 │   ├── search.go
+│   ├── selfupdate.go
 │   ├── update.go
 │   └── wiki.go
 ├── internal/
