@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"codeberg.org/pivpav/glow/internal/article"
@@ -391,9 +392,13 @@ replacement text
 		return mcp.NewToolResultText(fmt.Sprintf("Moved article: %s -> %s", oldName, newName)), nil
 	})
 
+	version := cmd.Root().Version
+
 	if mcpPort != "" {
+		fmt.Fprintf(os.Stderr, "GLOW MCP Server %s — HTTP :%s/mcp\n", version, mcpPort)
 		httpServer := server.NewStreamableHTTPServer(s)
 		return httpServer.Start(":" + mcpPort)
 	}
+	fmt.Fprintf(os.Stderr, "GLOW MCP Server %s — STDIO\n", version)
 	return server.ServeStdio(s)
 }
