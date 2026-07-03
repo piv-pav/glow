@@ -14,16 +14,22 @@ import (
 
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "Start MCP server (stdio)",
-	Long:  `Start a Model Context Protocol server over stdio, exposing all wiki operations as tools.`,
-	Args:  cobra.NoArgs,
-	RunE:  runMCP,
+	Short: "Start MCP server (stdio or HTTP)",
+	Long:  `Start a Model Context Protocol server exposing all wiki operations as tools.
+By default uses stdio transport (for Claude Desktop).
+With --port, starts a Streamable HTTP server.`,
+	Args: cobra.NoArgs,
+	RunE: runMCP,
 }
 
-var mcpWiki string
+var (
+	mcpWiki string
+	mcpPort string
+)
 
 func init() {
 	mcpCmd.Flags().StringVarP(&mcpWiki, "wiki", "w", "default", "Wiki to expose via MCP")
+	mcpCmd.Flags().StringVar(&mcpPort, "port", "", "HTTP port for Streamable HTTP transport (e.g. 8080)")
 }
 
 func runMCP(cmd *cobra.Command, args []string) error {
@@ -385,5 +391,9 @@ replacement text
 		return mcp.NewToolResultText(fmt.Sprintf("Moved article: %s -> %s", oldName, newName)), nil
 	})
 
+	if mcpPort != "" {
+		httpServer := server.NewStreamableHTTPServer(s)
+		return httpServer.Start(":" + mcpPort)
+	}
 	return server.ServeStdio(s)
 }

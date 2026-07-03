@@ -14,7 +14,7 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
 - 💾 **SQLite + rqlite** - Local file or distributed cluster
 - 📦 **Export/Import** - Migrate articles between wikis
-- 🤖 **MCP Server** - Expose wiki as MCP tools for AI assistants (`glow mcp`)
+- 🤖 **MCP Server** - Expose wiki as MCP tools for AI assistants over stdio or HTTP (`glow mcp`)
 
 ## Installation
 
@@ -191,11 +191,11 @@ glow -w work list
 
 ### MCP Server
 
-Run glow as an [MCP](https://modelcontextprotocol.io) server over stdio, exposing all wiki operations as tools for AI assistants (Claude Desktop, Cursor, etc.):
+Run glow as an [MCP](https://modelcontextprotocol.io) server, exposing all wiki operations as tools for AI assistants (Claude Desktop, Cursor, etc.):
 
 ```bash
-glow mcp              # serve default wiki
-glow mcp --wiki work  # serve a named wiki
+glow mcp               # stdio transport (default)
+glow mcp --port 8080   # Streamable HTTP transport
 ```
 
 All 8 tools (`search`, `list`, `read`, `create`, `update`, `append`, `delete`, `move`) are exposed. Each tool accepts an optional `wiki_name` parameter to target a non-default wiki at call time.
