@@ -2,23 +2,7 @@
 
 A simple CLI tool providing wiki-like access to markdown articles with full-text search and metadata management.
 
-> ## ⚠️ Breaking Changes in 0.9.0
->
-> Version **0.9.0** massively changes the way glow operates and is **not backward compatible** with 0.8.7 and below.
->
-> See the [CHANGELOG](CHANGELOG.md) for the full nature of the changes.
->
-> **If you are upgrading from 0.8.7 or earlier, you must migrate your data to avoid data loss:**
->
-> 1. **Export** all your wikis *before* upgrading:
->    ```bash
->    glow export <wiki> /tmp/<wiki>-backup.tar.gz
->    ```
-> 2. **Upgrade** glow to 0.9.0.
-> 3. **Import** your wikis back:
->    ```bash
->    glow import <wiki> /tmp/<wiki>-backup.tar.gz
->    ```
+> **Upgrading from 0.8.7 or earlier?** Export your wikis first — 0.9.0 changed the storage format. See [CHANGELOG](CHANGELOG.md).
 
 ## Features
 
@@ -30,6 +14,7 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 - 📚 **Multi-Wiki** - Manage multiple independent wikis
 - 💾 **SQLite + rqlite** - Local file or distributed cluster
 - 📦 **Export/Import** - Migrate articles between wikis
+- 🤖 **MCP Server** - Expose wiki as MCP tools for AI assistants (`glow mcp`)
 
 ## Installation
 
@@ -204,6 +189,27 @@ glow list
 glow -w work list
 ```
 
+### MCP Server
+
+Run glow as an [MCP](https://modelcontextprotocol.io) server over stdio, exposing all wiki operations as tools for AI assistants (Claude Desktop, Cursor, etc.):
+
+```bash
+glow mcp              # serve default wiki
+glow mcp --wiki work  # serve a named wiki
+```
+
+All 8 tools (`search`, `list`, `read`, `create`, `update`, `append`, `delete`, `move`) are exposed. Each tool accepts an optional `wiki_name` parameter to target a non-default wiki at call time.
+
+Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "glow": { "command": "glow", "args": ["mcp"] }
+  }
+}
+```
+
 ### Upgrading
 
 ```bash
@@ -318,6 +324,7 @@ glow/
 │   ├── move.go
 │   ├── read.go
 │   ├── search.go
+│   ├── mcp.go
 │   ├── selfupdate.go
 │   ├── update.go
 │   └── wiki.go
@@ -335,6 +342,7 @@ glow/
 - [gorqlite](https://github.com/rqlite/gorqlite) - rqlite driver
 - [go-yaml](https://gopkg.in/yaml.v3) - YAML parsing
 - [xdg](https://github.com/adrg/xdg) - XDG directories
+- [mcp-go](https://github.com/mark3labs/mcp-go) - MCP server framework
 
 ### Building
 
