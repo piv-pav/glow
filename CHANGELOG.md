@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-07-03
+
+### Added
+- **`glow mcp` command**: MCP server over stdio exposing all wiki operations as tools (`search`, `list`, `read`, `create`, `update`, `append`, `delete`, `move`). Zero changes to existing CLI code — pure wrapper calling the same storage layer. Optional `wiki_name` parameter on every tool defaults to `"default"`; `--wiki` flag at startup sets the server-wide default.
+
+### Changed
+- Minimum Go version lowered to `1.25`.
+
 ## [0.9.6] - 2026-07-02
 
 ### Added

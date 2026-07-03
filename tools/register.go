@@ -3,6 +3,7 @@ package tools
 import "github.com/spf13/cobra"
 
 func RegisterCommands(root *cobra.Command) {
+	root.AddCommand(mcpCmd)
 	root.AddCommand(exportCmd)
 	root.AddCommand(importCmd)
 	root.AddCommand(appendCmd)
