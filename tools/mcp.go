@@ -55,18 +55,16 @@ func runMCP(cmd *cobra.Command, args []string) error {
 
 		query, filters := parseEmbeddedFilters(query)
 
-		store, err := storage.New(wikiName)
-		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
-		defer store.Close()
-
-		searcher, ok := store.(storage.Searcher)
-		if !ok {
-			return mcp.NewToolResultError("backend does not support search"), nil
-		}
-		out, err := searcher.Search(query, filters, limit)
-		if err != nil {
+		var out *storage.SearchOutput
+		if err := withStore(wikiName, func(store storage.Store) error {
+			searcher, ok := store.(storage.Searcher)
+			if !ok {
+				return fmt.Errorf("backend does not support search")
+			}
+			var err error
+			out, err = searcher.Search(query, filters, limit)
+			return err
+		}); err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
