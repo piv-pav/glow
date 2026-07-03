@@ -27,7 +27,7 @@ func init() {
 }
 
 func runMCP(cmd *cobra.Command, args []string) error {
-	s := server.NewMCPServer("glow", "1.0.0")
+	s := server.NewMCPServer("glow", cmd.Root().Version)
 
 	wikiParam := mcp.WithString("wiki_name",
 		mcp.Description(`Wiki name to use (default: "default"). Only specify if targeting a non-default wiki.`),
