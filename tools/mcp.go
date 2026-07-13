@@ -15,22 +15,16 @@ import (
 
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "Start MCP server (stdio or HTTP)",
-	Long:  `Start a Model Context Protocol server exposing all wiki operations as tools.
-By default uses stdio transport (for Claude Desktop).
-With --port, starts a Streamable HTTP server.`,
+	Short: "Start MCP server (stdio)",
+	Long:  `Start a Model Context Protocol server exposing all wiki operations as tools over stdio (for Claude Desktop).`,
 	Args: cobra.NoArgs,
 	RunE: runMCP,
 }
 
-var (
-	mcpWiki string
-	mcpPort string
-)
+var mcpWiki string
 
 func init() {
 	mcpCmd.Flags().StringVarP(&mcpWiki, "wiki", "w", "default", "Wiki to expose via MCP")
-	mcpCmd.Flags().StringVar(&mcpPort, "port", "", "HTTP port for Streamable HTTP transport (e.g. 8080)")
 }
 
 func runMCP(cmd *cobra.Command, args []string) error {
@@ -243,7 +237,7 @@ replacement text
 		var result string
 		appliedBlocks := 0
 
-		err := modifyArticleQuiet(wikiName, name, func(art *article.Article) error {
+		err := modifyArticle(wikiName, name, func(art *article.Article) error {
 			switch {
 			case diffBlocks != "" && section != "":
 				n, err := art.ApplyDiffToSection(section, diffBlocks)
@@ -332,7 +326,7 @@ replacement text
 				art.RemoveTags(untags...)
 			}
 			return nil
-		}, msg)
+		})
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -355,7 +349,7 @@ replacement text
 			msg := fmt.Sprintf("Deleted section: %s from article: %s", section, name)
 			err := modifyArticle(wikiName, name, func(art *article.Article) error {
 				return art.DeleteSection(section)
-			}, msg)
+			})
 			if err != nil {
 				return mcp.NewToolResultError(err.Error()), nil
 			}
@@ -393,12 +387,6 @@ replacement text
 	})
 
 	version := cmd.Root().Version
-
-	if mcpPort != "" {
-		fmt.Fprintf(os.Stderr, "GLOW MCP Server %s — HTTP :%s/mcp\n", version, mcpPort)
-		httpServer := server.NewStreamableHTTPServer(s)
-		return httpServer.Start(":" + mcpPort)
-	}
 	fmt.Fprintf(os.Stderr, "GLOW MCP Server %s — STDIO\n", version)
 	return server.ServeStdio(s)
 }

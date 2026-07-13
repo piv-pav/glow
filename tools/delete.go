@@ -28,9 +28,14 @@ func runDelete(cmd *cobra.Command, args []string) error {
 
 	if deleteSection != "" {
 		msg := fmt.Sprintf("Deleted section: %s from article: %s", deleteSection, name)
-		return modifyArticle(wikiName, name, func(art *article.Article) error {
+		err := modifyArticle(wikiName, name, func(art *article.Article) error {
 			return art.DeleteSection(deleteSection)
-		}, msg)
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Println(msg)
+		return nil
 	}
 
 	return withStore(wikiName, func(store storage.Store) error {

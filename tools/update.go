@@ -84,7 +84,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	appliedBlocks := 0
-	err := modifyArticleQuiet(wikiName, name, func(art *article.Article) error {
+	err := modifyArticle(wikiName, name, func(art *article.Article) error {
 		switch {
 		case updateDiff && updateSection != "":
 			n, err := art.ApplyDiffToSection(updateSection, newContent)

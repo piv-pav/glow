@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] - 2026-07-13
+
+### Removed
+- **MCP HTTP transport** (`--port` flag): HTTP transport violated glow's architecture principles (single-writer, local-first). Never tested with multiple concurrent clients. rqlite is the only recommended network transport.
+- **`FilePath` field from `Article` struct**: Unused dead field.
+
+### Changed
+- **Consolidate `modifyArticleQuiet` → `modifyArticle`**: Single implementation; CLI callers print output themselves, MCP uses function directly without stdout noise.
+
 ## [0.10.2] - 2026-07-03
 
 ### Added

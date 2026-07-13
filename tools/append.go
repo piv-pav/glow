@@ -53,7 +53,7 @@ func runAppend(cmd *cobra.Command, args []string) error {
 		msg = fmt.Sprintf("Appended to section %q in article: %s", appendSection, name)
 	}
 
-	return modifyArticle(wikiName, name, func(art *article.Article) error {
+	err = modifyArticle(wikiName, name, func(art *article.Article) error {
 		if content != "" {
 			if appendSection != "" {
 				if err := art.AppendToSection(appendSection, content); err != nil {
@@ -73,5 +73,10 @@ func runAppend(cmd *cobra.Command, args []string) error {
 			art.RemoveTags(appendUntags...)
 		}
 		return nil
-	}, msg)
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println(msg)
+	return nil
 }

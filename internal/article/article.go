@@ -14,7 +14,6 @@ import (
 type Article struct {
 	Frontmatter map[string]interface{} // tags, created, modified, path
 	Content     string
-	FilePath    string
 }
 
 // New creates a new article with default timestamps
