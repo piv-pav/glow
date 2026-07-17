@@ -1,0 +1,26 @@
+schema: spec-driven-with-decisions
+
+context: |
+  Tech stack: Go 1.25+, cobra CLI, modernc.org/sqlite (CGO-free), rqlite, mcp-go
+  Build: just (justfile) — `just build`, `just test`, `just install`
+  Module: codeberg.org/pivpav/glow
+
+  CGO policy: MUST remain CGO-free. Use modernc.org/sqlite only — never mattn/go-sqlite3.
+
+  Product language:
+  - Write specs in observable CLI behaviour language (flags, output, exit codes)
+  - Requirements describe what the user sees and can invoke — not internal mechanics
+  - Put implementation details in design.md or tasks.md
+  - Internal mechanism is part of the contract only when it affects user-visible behaviour (e.g. MCP pure translation layer principle)
+
+rules:
+  specs:
+    - Requirements describe observable CLI behaviour; commands, flags, stdout/stderr output, exit codes
+    - Scenarios use exact flag syntax as the user would type them
+    - Internal implementation details belong in design.md, not specs
+  tasks:
+    - Tasks must be small enough to complete in one session
+    - Include a test/verify task for each behaviour change
+  design:
+    - Document the "why" behind technical decisions, not line-by-line implementation
+    - Note CGO-free constraint whenever a storage or dependency decision is made
