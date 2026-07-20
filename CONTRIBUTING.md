@@ -13,19 +13,18 @@ Every behavioral change must be accompanied by:
 
 ## Getting the Schema
 
-Install `spec-driven-with-decisions` globally:
+The `spec-driven-with-decisions` schema is included as a git submodule at `openspec/schemas/`.
+If you cloned without `--recurse-submodules`, initialise it:
 
 ```bash
-mkdir -p ~/.local/share/openspec/schemas
-cp -r openspec/schemas/spec-driven-with-decisions ~/.local/share/openspec/schemas/
+git submodule update --init
 ```
-
-Or clone directly from [codeberg.org/pivpav/openspec-schemas](https://codeberg.org/pivpav/openspec-schemas).
 
 Verify:
 
 ```bash
 openspec schema which spec-driven-with-decisions
+# Source: project
 ```
 
 ## Starting a Change
