@@ -1,30 +1,90 @@
-## ADDED Requirements
+# Multi-Wiki Specification
+
+## Purpose
+
+Glow supports multiple named wikis on a single machine. Each wiki is an isolated store of articles with its own backend configuration. The `wiki-create`, `wiki-delete`, and `wiki-list` commands manage wikis. The `-w` global flag selects which wiki article commands target.
+
+## Requirements
 
 ### Requirement: Create named wiki
-The system SHALL provide two commands for creating a wiki:
+The system SHALL provide a single command for creating a wiki: `glow wiki-create <name>`.
 
-- `glow init [name]` — interactive; prompts for backend (`sqlite`/`rqlite`) and, if rqlite, prompts for URL, user, and password (password input without echo). Name defaults to `default` if omitted.
-- `glow wiki-create <name>` — non-interactive; always creates a SQLite wiki. No prompts.
+The `<name>` positional argument is always required. The command requires exactly one of two mutually exclusive mode flags:
+- `--interactive` / `-i` — interactive mode; prompts for backend (`sqlite`/`rqlite`) and, if rqlite, prompts for URL, user, and password (password input without echo).
+- `--backend <b>` / `-b <b>` — non-interactive mode; creates wiki with the specified backend (`sqlite` or `rqlite`).
 
-#### Scenario: init prompts for backend
-- **WHEN** `glow init mywiki` is run
+For rqlite non-interactive mode, the following additional flags are available:
+- `--url <url>` — rqlite cluster URL (required for rqlite)
+- `--user <user>` — rqlite username (optional)
+- `--password <pass>` — rqlite password (optional)
+- `--password-stdin` — read rqlite password from stdin instead of `--password` (mutually exclusive with `--password`)
+- `--level <level>` — rqlite consistency level: `none`, `weak`, `strong` (optional; default: `weak`)
+
+Omitting both `-i` and `-b` is an error. Providing both is an error.
+
+#### Scenario: wiki-create with -b sqlite creates wiki
+- **WHEN** `glow wiki-create mywiki -b sqlite` is run
+- **THEN** a new SQLite wiki named `mywiki` is created and exits 0
+
+#### Scenario: wiki-create with -b rqlite creates wiki
+- **WHEN** `glow wiki-create mywiki -b rqlite --url http://localhost:4001` is run
+- **THEN** a new rqlite wiki named `mywiki` is created and exits 0
+
+#### Scenario: wiki-create rqlite requires --url
+- **WHEN** `glow wiki-create mywiki -b rqlite` is run without `--url`
+- **THEN** command exits non-zero with an error indicating `--url` is required
+
+#### Scenario: wiki-create rqlite with credentials
+- **WHEN** `glow wiki-create mywiki -b rqlite --url http://localhost:4001 --user alice --password secret` is run
+- **THEN** a new rqlite wiki named `mywiki` is created with the supplied credentials and exits 0
+
+#### Scenario: wiki-create rqlite with --password-stdin
+- **WHEN** `glow wiki-create mywiki -b rqlite --url http://localhost:4001 --user alice --password-stdin` is run with password piped to stdin
+- **THEN** a new rqlite wiki named `mywiki` is created using the piped password and exits 0
+
+#### Scenario: --password and --password-stdin together is an error
+- **WHEN** `glow wiki-create mywiki -b rqlite --url http://localhost:4001 --password secret --password-stdin` is run
+- **THEN** command exits non-zero with an error indicating the flags are mutually exclusive
+
+#### Scenario: wiki-create rqlite with consistency level
+- **WHEN** `glow wiki-create mywiki -b rqlite --url http://localhost:4001 --level strong` is run
+- **THEN** a new rqlite wiki named `mywiki` is created with `strong` consistency and exits 0
+
+#### Scenario: wiki-create with -i prompts for backend
+- **WHEN** `glow wiki-create mywiki -i` is run interactively
 - **THEN** user is prompted "Storage backend [sqlite/rqlite] (default: sqlite):"
 
-#### Scenario: init with rqlite prompts for connection details
+#### Scenario: wiki-create -i with rqlite prompts for connection details
 - **WHEN** user enters `rqlite` at the backend prompt
 - **THEN** user is prompted for URL, user, and password (password read without echo)
 
-#### Scenario: init defaults to sqlite
+#### Scenario: wiki-create -i defaults to sqlite
 - **WHEN** user presses enter at the backend prompt
 - **THEN** wiki is created with SQLite backend
 
-#### Scenario: init defaults wiki name to default
-- **WHEN** `glow init` is run with no name argument
-- **THEN** wiki is created with name `default`
+#### Scenario: wiki-create with no mode flag is an error
+- **WHEN** `glow wiki-create mywiki` is run with neither `-i` nor `-b`
+- **THEN** command exits non-zero with an error message indicating `-i` or `-b` is required
 
-#### Scenario: wiki-create always uses SQLite
-- **WHEN** `glow wiki-create mywiki` is run
-- **THEN** a new SQLite wiki `mywiki` is created without prompts
+#### Scenario: wiki-create with no name is an error
+- **WHEN** `glow wiki-create` is run with no positional argument
+- **THEN** command exits non-zero with an error message indicating name is required
+
+#### Scenario: wiki-create -i and -b together is an error
+- **WHEN** `glow wiki-create mywiki -i -b sqlite` is run
+- **THEN** command exits non-zero with an error indicating the flags are mutually exclusive
+
+#### Scenario: wiki-create duplicate name is an error
+- **WHEN** `glow wiki-create mywiki -b sqlite` is run and `mywiki` already exists
+- **THEN** command exits non-zero with an error indicating the wiki already exists
+
+#### Scenario: -b shorthand accepted
+- **WHEN** `glow wiki-create mywiki -b sqlite` is run
+- **THEN** it behaves identically to `glow wiki-create mywiki --backend sqlite`
+
+#### Scenario: -i shorthand accepted
+- **WHEN** `glow wiki-create mywiki -i` is run
+- **THEN** it behaves identically to `glow wiki-create mywiki --interactive`
 
 ### Requirement: Delete named wiki
 The system SHALL delete a named wiki's database file via `glow wiki-delete <name>`.
@@ -66,5 +126,5 @@ SQLite wikis SHALL be stored as a single `.db` file at `<data-dir>/<name>.db`. T
 The system SHALL reject wiki names that could cause path traversal (e.g., names containing `..` or `/`).
 
 #### Scenario: Invalid wiki name rejected
-- **WHEN** `glow wiki-create "../evil"` is run
+- **WHEN** `glow wiki-create "../evil" -b sqlite` is run
 - **THEN** command exits with a validation error

@@ -11,20 +11,32 @@ import (
 	"golang.org/x/term"
 )
 
-var wikiInitCmd = &cobra.Command{
-	Use:   "init [name]",
-	Short: "Create a new wiki (interactive)",
-	Long:  `Create a new wiki and configure its storage backend (sqlite or rqlite).`,
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runWikiInit,
-}
+// wikiCreateCmd flags
+var (
+	wikiCreateBackend       string
+	wikiCreateURL           string
+	wikiCreateUser          string
+	wikiCreatePassword      string
+	wikiCreatePasswordStdin bool
+	wikiCreateLevel         string
+	wikiCreateInteractive   bool
+)
 
 var wikiCreateCmd = &cobra.Command{
-	Use:   "wiki-create [name]",
-	Short: "Create a new wiki (sqlite, non-interactive)",
-	Long:  `Create a new wiki with sqlite backend. Use 'init' for interactive backend selection.`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runWikiCreate,
+	Use:   "wiki-create <name>",
+	Short: "Create a new wiki",
+	Long: `Create a new wiki.
+
+Non-interactive (-b / --backend required):
+  glow wiki-create <name> -b sqlite
+  glow wiki-create <name> -b rqlite --url http://localhost:4001
+  glow wiki-create <name> -b rqlite --url http://localhost:4001 --user foo --password bar
+  glow wiki-create <name> -b rqlite --url http://localhost:4001 --user foo --password-stdin
+
+Interactive (-i / --interactive prompts for backend and connection details):
+  glow wiki-create <name> -i`,
+	Args: cobra.ExactArgs(1),
+	RunE: runWikiCreate,
 }
 
 var wikiListCmd = &cobra.Command{
@@ -42,13 +54,79 @@ var wikiDeleteCmd = &cobra.Command{
 	RunE:  runWikiDelete,
 }
 
-// runWikiInit is the interactive wiki creator.
-func runWikiInit(cmd *cobra.Command, args []string) error {
-	name := "default"
-	if len(args) > 0 {
-		name = args[0]
+func init() {
+	wikiCreateCmd.Flags().StringVarP(&wikiCreateBackend, "backend", "b", "", "Storage backend: sqlite or rqlite (required for non-interactive)")
+	wikiCreateCmd.Flags().StringVar(&wikiCreateURL, "url", "", "rqlite URL (e.g. http://localhost:4001)")
+	wikiCreateCmd.Flags().StringVar(&wikiCreateUser, "user", "", "rqlite username (optional)")
+	wikiCreateCmd.Flags().StringVar(&wikiCreatePassword, "password", "", "rqlite password (optional; use --password-stdin to read from stdin)")
+	wikiCreateCmd.Flags().BoolVar(&wikiCreatePasswordStdin, "password-stdin", false, "Read rqlite password from stdin")
+	wikiCreateCmd.Flags().StringVar(&wikiCreateLevel, "level", "", "rqlite consistency level: none, weak, strong (default: weak)")
+	wikiCreateCmd.Flags().BoolVarP(&wikiCreateInteractive, "interactive", "i", false, "Run in interactive mode (prompts for backend and connection details)")
+}
+
+func runWikiCreate(cmd *cobra.Command, args []string) error {
+	name := args[0]
+
+	if wikiCreateInteractive && wikiCreateBackend != "" {
+		return fmt.Errorf("--interactive / -i and --backend / -b are mutually exclusive")
+	}
+	if !wikiCreateInteractive && wikiCreateBackend == "" {
+		return fmt.Errorf("one of --interactive / -i or --backend / -b is required")
 	}
 
+	if wikiCreateInteractive {
+		return runWikiCreateInteractive(name)
+	}
+
+	// Non-interactive path
+	var cfg config.WikiConfig
+	switch strings.ToLower(wikiCreateBackend) {
+	case "sqlite":
+		cfg.Backend = config.BackendSQLite
+	case "rqlite":
+		cfg.Backend = config.BackendRqlite
+
+		password := wikiCreatePassword
+		if wikiCreatePasswordStdin {
+			if wikiCreatePassword != "" {
+				return fmt.Errorf("cannot use both --password and --password-stdin")
+			}
+			r := bufio.NewReader(os.Stdin)
+			line, _ := r.ReadString('\n')
+			password = strings.TrimSpace(line)
+		}
+
+		cfg.Rqlite = &config.RqliteConfig{
+			URL:      wikiCreateURL,
+			User:     wikiCreateUser,
+			Password: password,
+			Level:    wikiCreateLevel,
+		}
+		if cfg.Rqlite.URL == "" {
+			return fmt.Errorf("--url is required for rqlite backend")
+		}
+	default:
+		return fmt.Errorf("unknown backend %q: use sqlite or rqlite", wikiCreateBackend)
+	}
+
+	if err := config.CreateWiki(name, &cfg); err != nil {
+		return err
+	}
+
+	fmt.Printf("Created wiki: %s\n", name)
+	switch cfg.Backend {
+	case config.BackendRqlite:
+		fmt.Printf("Location: %s\n", cfg.Rqlite.URL)
+	default:
+		wikiPath, _ := config.GetWikiDBPath(name)
+		fmt.Printf("Location: %s\n", wikiPath)
+	}
+	return nil
+}
+
+// runWikiCreateInteractive prompts for backend and connection details.
+// name is pre-filled from the positional arg; the name prompt is skipped.
+func runWikiCreateInteractive(name string) error {
 	r := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Storage backend [sqlite/rqlite] (default: sqlite): ")
@@ -110,17 +188,6 @@ func promptRqlite(r *bufio.Reader) *config.RqliteConfig {
 		User:     ask("  User (optional): "),
 		Password: readPassword(r, "  Password (optional): "),
 	}
-}
-
-func runWikiCreate(cmd *cobra.Command, args []string) error {
-	name := args[0]
-	if err := config.CreateWiki(name, &config.WikiConfig{Backend: config.BackendSQLite}); err != nil {
-		return err
-	}
-	fmt.Printf("Created wiki: %s\n", name)
-	wikiPath, _ := config.GetWikiDBPath(name)
-	fmt.Printf("Location: %s\n", wikiPath)
-	return nil
 }
 
 func runWikiList(cmd *cobra.Command, args []string) error {

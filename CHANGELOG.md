@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-07-21
+
+### Changed
+- **`glow wiki-create` unified command**: Merged `glow init` into `glow wiki-create`. The command now requires `<name>` as a positional argument and exactly one of `-b`/`--backend` (non-interactive) or `-i`/`--interactive` (interactive). Omitting both is an error; combining both is an error.
+- **`-b` shorthand** added for `--backend`; **`-i` shorthand** added for `--interactive`.
+- **Interactive mode** (`-i`) prompts for backend and connection details; name is pre-filled from the positional arg (no name prompt).
+- **rqlite non-interactive flags** fully supported: `--url` (required), `--user`, `--password`, `--password-stdin`, `--level`.
+
+### Removed
+- **`glow init`**: Removed with no deprecated shim. Use `glow wiki-create <name> -i` for interactive creation or `glow wiki-create <name> -b sqlite` for non-interactive.
+
 ## [0.10.3] - 2026-07-13
 
 ### Removed

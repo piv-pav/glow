@@ -14,7 +14,6 @@ func RegisterCommands(root *cobra.Command) {
 	root.AddCommand(readCmd)
 	root.AddCommand(searchCmd)
 	root.AddCommand(updateCmd)
-	root.AddCommand(wikiInitCmd)
 	root.AddCommand(wikiCreateCmd)
 	root.AddCommand(wikiDeleteCmd)
 	root.AddCommand(wikiListCmd)

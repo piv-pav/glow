@@ -37,11 +37,11 @@ just build    # Runs tests then builds
 ## Quick Start
 
 ```bash
-# Initialize a wiki (defaults to "default" with sqlite backend)
-glow init
+# Create a wiki (sqlite, non-interactive)
+glow wiki-create default -b sqlite
 
 # Or with a specific name
-glow init work
+glow wiki-create work -b sqlite
 
 # Create an article
 glow create "my-first-article" --content "# Hello
@@ -157,12 +157,12 @@ glow search "path:team/ meeting notes"
 ### Wiki Management
 
 ```bash
-# Initialize wiki (interactive backend selection)
-glow init              # creates "default" wiki
-glow init work         # creates named wiki
+# Create a wiki (non-interactive)
+glow wiki-create default -b sqlite      # sqlite
+glow wiki-create work -b rqlite --url http://localhost:4001  # rqlite
 
-# Quick create (sqlite, non-interactive)
-glow wiki-create work
+# Create a wiki (interactive — prompts for backend and connection details)
+glow wiki-create work -i
 
 # Delete a wiki
 glow wiki-delete work
@@ -243,7 +243,7 @@ Glow supports two storage backends:
 | **SQLite** (default) | FTS5 | Single-machine, fast, zero config |
 | **rqlite** | FTS5 | Distributed, offline reads, cluster |
 
-Select backend during `glow init` or set in `~/.config/glow/glow.yaml`:
+Select backend via `glow wiki-create <name> -b <backend>` or set in `~/.config/glow/glow.yaml`:
 
 ```yaml
 wikis:

@@ -1,11 +1,17 @@
 # CLI Design Decision
 
-Version: 1  
-Updated: 2026-07-17
+Version: 2  
+Updated: 2026-07-21
 
 ## Agreement
 
-Glow is a single-binary CLI. Commands are flat (no deep subcommand nesting). All content input uses `--content` (inline) or `--stdin` (pipe) — these are mutually exclusive. `--diff` is a third exclusive input mode for SEARCH/REPLACE editing. The `-w <name>` global flag targets a named wiki; without it, `default` is used. Wiki management commands are prefixed `wiki-` (`wiki-create`, `wiki-delete`, `wiki-list`). `glow init` is the interactive wiki creation entry point.
+Glow is a single-binary CLI. Commands are flat (no deep subcommand nesting). All content input uses `--content` (inline) or `--stdin` (pipe) — these are mutually exclusive. `--diff` is a third exclusive input mode for SEARCH/REPLACE editing. The `-w <name>` global flag targets a named wiki; without it, `default` is used. Wiki management commands are prefixed `wiki-` (`wiki-create`, `wiki-delete`, `wiki-list`).
+
+`glow wiki-create <name>` is the single command for wiki creation. It requires a positional `<name>` argument and exactly one of two mutually exclusive mode flags:
+- `--interactive` / `-i` — interactive mode; prompts for backend and connection details
+- `--backend <b>` / `-b <b>` — non-interactive mode; creates wiki with the specified backend
+
+Omitting both flags is an error. `glow init` does not exist.
 
 ## Rationale
 
@@ -15,19 +21,24 @@ Glow is a single-binary CLI. Commands are flat (no deep subcommand nesting). All
 
 **-w global flag over per-command flag:** Consistent wiki targeting across all commands without repeating the flag definition. Mirrors how tools like `kubectl -n` work.
 
-**wiki- prefix for management commands:** Separates lifecycle commands (init, delete, list wikis) from article operation commands (create, read, update, etc.).
+**wiki- prefix for management commands:** Separates lifecycle commands (wiki-create, wiki-delete, wiki-list) from article operation commands (create, read, update, etc.).
 
-**glow init as interactive entry point:** Single command handles both interactive TTY and scripted (flag-driven) wiki creation. `wiki-create` is a legacy shortcut for SQLite-only non-interactive creation.
+**Single `wiki-create` command, explicit mode flags:** Glow is AI-first. Implicit interactivity (prompting when flags are absent) breaks AI workflows by blocking on stdin. Interactivity is opt-in via `-i`. A human who wants prompts passes `-i`; an AI agent always passes `-b`. The two modes are clearly separated — no ambiguous fallback behaviour.
+
+**Name always required:** AI agents always know the wiki name. Requiring it explicitly makes every invocation self-documenting and prevents silent defaulting.
+
+**`-b` and `-i` shorthands:** Consistent shorthand flags reduce typing in interactive shell use. `-b` for `--backend`, `-i` for `--interactive`.
 
 ## Constraints
 
 - New commands MUST follow the flat structure — no `glow article create` style nesting.
 - Content input MUST use `--content` / `--stdin` / `--diff` pattern — no positional content arguments.
 - `--diff` MUST remain exclusive from `--content` and `--stdin`.
+- No command MAY prompt interactively without an explicit `-i` / `--interactive` flag. AI-safe by default.
 
 ## Compliance
 
-All existing commands comply. No remediation needed.
+`glow init` has been removed as part of this change. All wiki creation now goes through `wiki-create`. No other non-compliance exists.
 
 ## Notes
 

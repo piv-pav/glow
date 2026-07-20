@@ -117,15 +117,14 @@ func (e *testEnv) mustRunGlobal(t *testing.T, args ...string) string {
 // initWiki creates a wiki with the given backend non-interactively.
 func (e *testEnv) initWiki(t *testing.T, name, backend string) {
 	t.Helper()
-	cmd := exec.Command("glow", "init", name)
+	cmd := exec.Command("glow", "wiki-create", name, "-b", backend)
 	cmd.Env = append(os.Environ(),
 		"GLOW_DATA="+e.data,
 		"GLOW_CONFIG="+filepath.Join(e.config, "glow.yaml"),
 	)
-	cmd.Stdin = strings.NewReader("\n") // accept sqlite default
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("init wiki %s (%s) failed: %v\nOutput: %s", name, backend, err, string(out))
+		t.Fatalf("wiki-create %s (%s) failed: %v\nOutput: %s", name, backend, err, string(out))
 	}
 }
 
