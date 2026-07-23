@@ -5,7 +5,7 @@ Updated: 2026-07-17
 
 ## Agreement
 
-Glow is built with Go 1.25+, **CGO disabled**, using `just` as the task runner. Tests run automatically before every build or install (`just build`, `just install`). The module path is `codeberg.org/pivpav/glow`. Distribution is via `go install codeberg.org/pivpav/glow@latest`. Self-upgrade is provided by `glow upgrade` (calls `go install` with the latest Codeberg tag).
+Glow is built with Go 1.25+, **CGO disabled**, using `just` as the task runner. Tests run automatically before every build or install (`just build`, `just install`). The module path is `codeberg.org/pivpav/glow`. Distribution is via `go install codeberg.org/pivpav/glow@latest`. Self-upgrade is provided by `glow upgrade` (calls `go install` with the latest GitHub tag).
 
 ## Rationale
 
@@ -18,7 +18,7 @@ Glow is built with Go 1.25+, **CGO disabled**, using `just` as the task runner. 
 ## Constraints
 
 - Tests MUST pass before any build/install step.
-- Module path MUST remain `codeberg.org/pivpav/glow`.
+- Module path MUST remain `codeberg.org/pivpav/glow` until v0.11.2.
 
 ## Compliance
 
