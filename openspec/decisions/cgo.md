@@ -9,7 +9,7 @@ Glow is and MUST remain **CGO-free**. No dependency that requires CGO is permitt
 
 ## Rationale
 
-CGO-free enables `go install codeberg.org/pivpav/glow@latest` as the sole distribution mechanism — no C toolchain required on the user's machine. It also simplifies cross-platform builds and removes a class of build environment problems entirely.
+CGO-free enables `go install github.com/piv-pav/glow@latest` as the sole distribution mechanism — no C toolchain required on the user's machine. It also simplifies cross-platform builds and removes a class of build environment problems entirely.
 
 ## Constraints
 

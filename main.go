@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"codeberg.org/pivpav/glow/tools"
+	"github.com/piv-pav/glow/tools"
 	"github.com/spf13/cobra"
 )
 

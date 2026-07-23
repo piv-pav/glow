@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/storage"
+	"github.com/piv-pav/glow/internal/article"
+	"github.com/piv-pav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 

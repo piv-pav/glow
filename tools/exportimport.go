@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/config"
-	"codeberg.org/pivpav/glow/internal/storage"
+	"github.com/piv-pav/glow/internal/article"
+	"github.com/piv-pav/glow/internal/config"
+	"github.com/piv-pav/glow/internal/storage"
 	"github.com/spf13/cobra"
 )
 

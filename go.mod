@@ -1,4 +1,4 @@
-module codeberg.org/pivpav/glow
+module github.com/piv-pav/glow
 
 go 1.25.5
 

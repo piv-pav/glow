@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"codeberg.org/pivpav/glow/internal/article"
-	"codeberg.org/pivpav/glow/internal/config"
+	"github.com/piv-pav/glow/internal/article"
+	"github.com/piv-pav/glow/internal/config"
 )
 
 // Store is the backend-agnostic storage interface.

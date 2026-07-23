@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"codeberg.org/pivpav/glow/internal/config"
+	"github.com/piv-pav/glow/internal/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

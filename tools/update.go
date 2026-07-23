@@ -3,7 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"codeberg.org/pivpav/glow/internal/article"
+	"github.com/piv-pav/glow/internal/article"
 	"github.com/spf13/cobra"
 )
 

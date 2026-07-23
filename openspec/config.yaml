@@ -3,7 +3,7 @@ schema: spec-driven-with-decisions
 context: |
   Tech stack: Go 1.25+, cobra CLI, modernc.org/sqlite (CGO-free), rqlite, mcp-go
   Build: just (justfile) — `just build`, `just test`, `just install`
-  Module: codeberg.org/pivpav/glow
+  Module: github.com/piv-pav/glow
 
   CGO policy: MUST remain CGO-free. Use modernc.org/sqlite only — never mattn/go-sqlite3.
 

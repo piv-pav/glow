@@ -19,13 +19,13 @@ A simple CLI tool providing wiki-like access to markdown articles with full-text
 ## Installation
 
 ```bash
-go install codeberg.org/pivpav/glow@latest
+go install github.com/piv-pav/glow@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://codeberg.org/pivpav/glow
+git clone https://github.com/piv-pav/glow
 cd glow
 just install  # Runs tests then installs
 
@@ -377,4 +377,4 @@ Contributions welcome! Please feel free to submit a Pull Request.
 
 MIT License - see LICENSE file for details.
 
-Pavel Pivovarov - [Codeberg](https://codeberg.org/pivpav/glow)
+Pavel Pivovarov - [GitHub](https://github.com/piv-pav/glow)
