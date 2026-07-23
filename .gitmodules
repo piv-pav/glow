@@ -1,3 +1,0 @@
-[submodule "openspec/schemas"]
-	path = openspec/schemas
-	url = https://codeberg.org/pivpav/openspec-schemas.git
