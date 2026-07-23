@@ -1,5 +1,13 @@
 # GLOW - Go LLM-Oriented Wiki
 
+> **⚠️ This repository has moved to [github.com/piv-pav/glow](https://github.com/piv-pav/glow)**
+>
+> Codeberg recently [updated their Terms of Service](https://blog.codeberg.org/protecting-our-floss-commons-from-llms.html) to prohibit hosting AI-assisted code. I respect the platform — but I believe this is the wrong hill to die on.
+>
+> Good engineering is built on pragmatism, not idealism. Linus Torvalds is a great example — treating AI as a tool like any other, judged by the quality of code it produces, not its origin.
+>
+> The project moves to GitHub. Run `glow upgrade` to switch automatically, or update your bookmarks to **[github.com/piv-pav/glow](https://github.com/piv-pav/glow)**.
+
 A simple CLI tool providing wiki-like access to markdown articles with full-text search and metadata management.
 
 > **Upgrading from 0.8.7 or earlier?** Export your wikis first — 0.9.0 changed the storage format. See [CHANGELOG](CHANGELOG.md).
@@ -212,7 +220,7 @@ Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_conf
 ### Upgrading
 
 ```bash
-# Check latest version on Codeberg and upgrade if needed
+# Check latest version on GitHub and upgrade if needed
 glow upgrade
 ```
 
